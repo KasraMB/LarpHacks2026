@@ -30,12 +30,15 @@ The seed requires an empty database, runs transactionally, and can safely be rep
 
 ## Render
 
-The [Blueprint](render.yaml) defines the web service, Postgres, a worker, and daily research at 06:00 UTC. Import it from GitHub, then configure:
+The [Blueprint](render.yaml) defines one Free web service and one Free Postgres database. The web service runs Next.js and the queue worker together. Import it from GitHub, then configure:
 
 - Web: `FEATHERLESS_API_KEY`, `FEATHERLESS_MODEL`, and a random `CRON_SECRET`.
-- Cron: `APP_URL` set to the deployed web origin, such as `https://your-service.onrender.com`.
 
-The Blueprint shares database/provider settings with the worker and the cron secret with the cron service. Migrations run before web deployment and worker startup under a database advisory lock. Build installs include development dependencies because TypeScript migration/worker scripts use tsx. Run `npm run db:seed` once from the deployed environment if you want demo data in an empty database.
+For manual setup choose Web Service, Node, branch `main`, no root directory, build `npm ci --include=dev && npm run build`, start `npm run start:render`, and Free compute. Create Free Postgres in the same region and set the web service's `DATABASE_URL` to its Internal Database URL. Set `NODE_VERSION=24.18.0`. Keep Render's `PORT` setting.
+
+Startup applies migrations under a database advisory lock before launching HTTP and the worker. Both processes share the web service's environment; if either exits the service stops so Render can restart it. Build installs include development dependencies because the scripts use tsx. Free services sleep after 15 minutes without incoming traffic, so queued jobs pause while asleep and resume after wake-up (an interrupted job may wait for its lease to expire). Free Postgres expires after 30 days. There is no paid worker or automatic daily cron in this configuration. Run research manually for the event; daily scheduling can be added when event credits are confirmed.
+
+Free services have no dashboard shell. To seed an empty demo database, run `npm run db:seed` locally using its External Database URL in an uncommitted `.env.local`; restore local configuration afterward. Deployment does not automatically create demo data.
 
 Cron sends an authenticated POST to `/api/cron/research`; it queues runs, and the worker performs discovery and AI processing. Missing cron configuration returns 503; missing/incorrect authorization returns 401 before database access. For a manual cron invocation, configure `APP_URL` and `CRON_SECRET`, then run `npm run cron:research`.
 
