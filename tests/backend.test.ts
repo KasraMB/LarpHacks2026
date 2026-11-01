@@ -6,6 +6,7 @@ import { processNextJob } from "@/server/queue";
 import type { AliasRuntime } from "@/server/runtime";
 import { claimSchema, deckSchema, researchRunSchema } from "@/contracts";
 import { FEATHERLESS_PROMPT_VERSION } from "@/server/ai";
+import { FeatherlessGenerationError } from "@/server/ai/errors";
 import type { Claim, Deck, Identity, Interest, Person, ResearchFact, ResearchRun } from "@/contracts";
 import type { Job, Repository, ServerDependencies } from "@/server/ports";
 
@@ -177,7 +178,7 @@ test("invalid deck evidence URL persists failed deck", async () => {
   await assert.rejects(worker.execute(deck.id), /Invalid evidence URL/);
   assert.equal(saves.at(-1)?.status, "failed");
   assert.equal(saves.at(-1)?.cards.length, 0);
-  assert.equal(saves.at(-1)?.failure?.code, "UPSTREAM_ERROR");
+  assert.equal(saves.at(-1)?.failure?.code, "AI_INVALID_OUTPUT");
 });
 
 test("deck with no claim or research evidence fails with NO_EVIDENCE", async () => {
@@ -200,6 +201,20 @@ test("deck with no claim or research evidence fails with NO_EVIDENCE", async () 
   assert.equal(saves.at(-1)?.failure?.code, "NO_EVIDENCE");
   assert.match(saves.at(-1)?.failure?.message ?? "", /Add a past claim, or assign a skill and run its research/);
   assert.equal(saves.at(-1)?.failure?.retryable, false);
+});
+
+test("deck persists a specific safe provider failure when research exists without claims", async () => {
+  const saves: Deck[] = [];
+  const snapshot = { context: { identity, person, interests: [interestA], claims: [], facts: [fact], researchSince: cutoff }, model: process.env.FEATHERLESS_MODEL ?? "test/model", promptVersion: FEATHERLESS_PROMPT_VERSION };
+  const repository = { decks: {
+    get: async () => ({ ...deck, claimIds: [] }), getSnapshot: async () => snapshot,
+    save: async (record: { deck: Deck }) => { saves.push(record.deck); return record.deck; },
+  } };
+  const worker = createWorkers(dependencies(repository, { ai: { extractFacts: async () => [], checkContradictions: async () => [], generateDeck: async () => { throw new FeatherlessGenerationError("AI_OUTPUT_TRUNCATED"); } } })).deck;
+  await assert.rejects(worker.execute(deck.id), /output token limit/);
+  assert.equal(saves.at(-1)?.failure?.code, "AI_OUTPUT_TRUNCATED");
+  assert.match(saves.at(-1)?.failure?.message ?? "", /output token limit/);
+  assert.equal(saves.at(-1)?.status, "failed");
 });
 
 test("durable retries keep claims, research and decks nonterminal until success or exhaustion", async () => {

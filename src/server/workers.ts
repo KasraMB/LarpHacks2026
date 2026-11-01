@@ -4,6 +4,7 @@ import type { ServerDependencies, ResearchWorker, DeckWorker, ClaimCheckWorker }
 import { collectPages } from "./use-cases";
 import { FEATHERLESS_PROMPT_VERSION } from "./ai";
 import { researchErrorDetail } from "./research/errors";
+import { deckGenerationFailure } from "./ai/errors";
 
 const failure = (message: string): Failure => ({ code: "UPSTREAM_ERROR", message, retryable: true });
 const within = () => AbortSignal.timeout(220_000);
@@ -102,7 +103,7 @@ export function createWorkers(deps: ServerDependencies): { research: ResearchWor
           ? { ...deck, status: "queued", cards: [], finishedAt: null, failure: null }
           : { ...deck, status: "failed", cards: [], finishedAt: deps.clock.now(), failure: noEvidence
             ? { code: "NO_EVIDENCE", message: "There are no saved claims or eligible research facts for this person. Add a past claim, or assign a skill and run its research, then build a new deck.", retryable: false }
-            : failure("Deck generation failed. Check evidence and provider configuration before retrying.") });
+            : deckGenerationFailure(error) });
         throw error;
       }
     } },
