@@ -1,0 +1,38 @@
+{
+  "name": "alias",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "next": "^16.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.1.0",
+    "server-only": "^0.0.1",
+    "drizzle-orm": "^0.45.4",
+    "postgres": "^3.4.0",
+    "openai": "^6.0.0",
+    "rss-parser": "^3.13.0",
+    "@mozilla/readability": "^0.6.0",
+    "jsdom": "^27.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/jsdom": "^21.1.0",
+    "tailwindcss": "^4.1.0",
+    "@tailwindcss/postcss": "^4.1.0",
+    "drizzle-kit": "^0.31.0",
+    "tsx": "^4.20.0"
+  },
+  "engines": { "node": ">=22.12.0" }
+}
