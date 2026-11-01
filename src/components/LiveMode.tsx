@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import type { LiveModeProps } from "./contracts";
-import { CardTypeLabel, EvidenceList } from "./Flashcard";
+import { cardTypeLabels, CardTypeLabel, EvidenceList } from "./Flashcard";
 import { isInteractiveTarget } from "./PrepMode";
 import { ArrowIcon, Button, ErrorMessage, formatSerial } from "./ui";
 
@@ -15,6 +15,7 @@ export function LiveMode({
   onPrevious,
   onNext,
   onJumpToInterest,
+  onJumpToType,
 }: LiveModeProps) {
   const { data: deck, loading, error } = state;
   const cards = deck?.cards ?? [];
@@ -86,6 +87,33 @@ export function LiveMode({
           </p>
         ) : null}
 
+        {cards.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Card types">
+            {(Object.keys(cardTypeLabels) as Array<keyof typeof cardTypeLabels>).map((type) => {
+              const available = cards.some(
+                (card) => card.type === type && (!activeInterestId || card.interestIds.includes(activeInterestId)),
+              );
+              const selected = activeCard?.type === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  aria-pressed={selected}
+                  disabled={!available}
+                  onClick={() => void onJumpToType(type)}
+                  className={`min-h-10 rounded-sm border px-3.5 text-sm font-semibold transition-colors focus-visible:outline-ground disabled:cursor-not-allowed disabled:opacity-50 ${
+                    selected
+                      ? "border-ground bg-ground text-ink"
+                      : "border-night-line bg-night-raised text-ground hover:border-night-muted"
+                  }`}
+                >
+                  {cardTypeLabels[type].name}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
         {topics.length > 0 ? (
           <ul className="flex flex-wrap gap-1.5" aria-label="Topics">
             {topics.map((topic) => {
@@ -124,10 +152,10 @@ export function LiveMode({
             </div>
 
             <div className="space-y-4">
-              <h2 className="text-[22px] font-bold leading-[1.25] tracking-[-0.02em] text-night-muted sm:text-[26px]">
+              <h2 className="break-words text-[22px] font-bold leading-[1.25] tracking-[-0.02em] text-night-muted sm:text-[26px]">
                 {activeCard.prompt}
               </h2>
-              <p className="text-[24px] font-semibold leading-[1.3] tracking-[-0.015em] text-ground sm:text-[30px]">
+              <p className="break-words text-[24px] font-semibold leading-[1.3] tracking-[-0.015em] text-ground sm:text-[30px]">
                 {activeCard.answer}
               </p>
             </div>
@@ -165,7 +193,7 @@ export function LiveMode({
             <p className="flex items-center justify-center gap-1.5 font-mono text-xs text-night-muted">
               <kbd className="kbd border-night-line! bg-night-raised! text-ground!">Left</kbd>
               <kbd className="kbd border-night-line! bg-night-raised! text-ground!">Right</kbd>
-              <span>arrow keys move between cards</span>
+              <span>Use left and right arrow keys to move between cards.</span>
             </p>
           </div>
         ) : null}

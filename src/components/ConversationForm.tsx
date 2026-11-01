@@ -69,8 +69,8 @@ export function ConversationForm({ personId, onSubmit, loading, error }: Convers
           <span className="serial-tag">DEBRIEF // CUTOFF UPDATE</span>
         </div>
         <p className="text-sm leading-relaxed text-muted">
-          Log a call or chat and the claims you made in it. Updating the conversation timestamp advances this contact’s
-          research cutoff, and each claim gets checked against earlier ones.
+          Save what you discussed and any claims you made. The most recent conversation sets the research cutoff for your next
+          deck; an older entry keeps the current cutoff.
         </p>
         <div className="grid gap-4 sm:grid-cols-[14rem_minmax(0,1fr)]">
           <TextField
@@ -89,7 +89,7 @@ export function ConversationForm({ personId, onSubmit, loading, error }: Convers
           />
         </div>
         <fieldset className="space-y-3 border-t border-line pt-4">
-          <legend className="mb-2 text-sm font-bold text-ink">Claims you made</legend>
+          <legend className="mb-2 text-sm font-bold text-ink">What you said in this conversation (optional)</legend>
           {claims.length === 0 ? (
             <p className="text-sm text-muted">No claims added to this conversation entry yet.</p>
           ) : null}

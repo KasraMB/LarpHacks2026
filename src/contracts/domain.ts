@@ -7,8 +7,8 @@ const timestamps = { createdAt: timestampSchema, updatedAt: timestampSchema };
 
 export const identityInputSchema = z.object({ name: text, background: z.string() });
 export const identitySchema = identityInputSchema.extend({ id: idSchema, ...timestamps });
-export const interestInputSchema = z.object({ name: text, searchTerms: z.array(text), feedUrls: z.array(z.url()) });
-export const interestSchema = interestInputSchema.extend({ id: idSchema, identityId: idSchema, ...timestamps });
+export const interestInputSchema = z.object({ name: text, searchTerms: z.array(text), feedUrls: z.array(z.url()), visibility: z.enum(["private", "public"]).default("private") });
+export const interestSchema = interestInputSchema.extend({ id: idSchema, identityId: idSchema, ownerUserId: idSchema.nullable().optional(), ...timestamps });
 export const personInputSchema = z.object({ name: text, notes: z.string(), interestIds: z.array(idSchema) });
 export const personSchema = personInputSchema.extend({
   id: idSchema, identityId: idSchema, lastConversationAt: timestampSchema.nullable(), ...timestamps,
@@ -34,7 +34,7 @@ export const conversationInputSchema = z.object({
 export const conversationSchema = conversationInputSchema.omit({ claims: true }).extend({
   id: idSchema, personId: idSchema, createdAt: timestampSchema,
 });
-export const sourceKindSchema = z.enum(["rss", "google_news", "hacker_news", "reddit", "wikipedia"]);
+export const sourceKindSchema = z.enum(["rss", "google_news", "hacker_news", "reddit", "wikipedia", "composio"]);
 export const sourceSchema = z.object({
   url: z.url(), title: text, kind: sourceKindSchema, publishedAt: timestampSchema.nullable(), retrievedAt: timestampSchema,
 });

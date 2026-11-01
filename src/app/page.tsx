@@ -12,8 +12,7 @@ export default function HomePage() {
           </span>
         }
       >
-        Keep a cover identity consistent across repeat conversations. Anchor every contact to their last-conversation
-        cutoff, audit new claims against earlier ones, and brief yourself before the next call.
+        Keep your cover identity consistent. Review what you told each person before your next conversation.
       </PageHeader>
       <HomeController />
     </section>

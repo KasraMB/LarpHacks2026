@@ -32,33 +32,38 @@ export type Resource<T> = AsyncData<T> & {
 
 /** Loads data when `key` changes. Pass `null` as key to skip loading. Stale responses are dropped. */
 export function useResource<T>(key: string | null, load: () => Promise<T>): Resource<T> {
-  const [state, setState] = useState<AsyncData<T>>({ data: null, loading: key !== null, error: null });
+  const [state, setState] = useState<AsyncData<T> & { key: string | null }>({ key, data: null, loading: key !== null, error: null });
   const loadRef = useRef(load);
   loadRef.current = load;
   const requestRef = useRef(0);
 
   const reload = useCallback(async () => {
+    if (key === null) return;
     const request = ++requestRef.current;
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
       const data = await loadRef.current();
-      if (request === requestRef.current) setState({ data, loading: false, error: null });
+      if (request === requestRef.current) setState({ key, data, loading: false, error: null });
     } catch (error) {
       if (request === requestRef.current) setState((s) => ({ ...s, loading: false, error: toApiError(error) }));
     }
-  }, []);
+  }, [key]);
 
   useEffect(() => {
+    setState({ key, data: null, loading: key !== null, error: null });
     if (key === null) return;
     void reload();
     return () => { requestRef.current++; };
   }, [key, reload]);
 
   const setData = useCallback((update: T | null | ((current: T | null) => T | null)) => {
-    setState((s) => ({ ...s, data: typeof update === "function" ? (update as (c: T | null) => T | null)(s.data) : update }));
-  }, []);
+    // A read started before this mutation must not overwrite the saved result.
+    requestRef.current++;
+    setState((s) => ({ key, loading: false, error: null, data: typeof update === "function" ? (update as (c: T | null) => T | null)(s.key === key ? s.data : null) : update }));
+  }, [key]);
 
-  return { ...state, reload, setData };
+  const visible = state.key === key ? state : { data: null, loading: key !== null, error: null };
+  return { ...visible, reload, setData };
 }
 
 /** Repeatedly calls `poll` every `intervalMs` while `active` is true. Stops on unmount or when `active` turns false. */
@@ -72,6 +77,8 @@ export function usePolling(active: boolean, poll: () => Promise<void>, intervalM
     const tick = async () => {
       try {
         await pollRef.current();
+      } catch {
+        // Poll callbacks surface errors through their resource state; keep retrying.
       } finally {
         if (!cancelled) timer = setTimeout(tick, intervalMs);
       }

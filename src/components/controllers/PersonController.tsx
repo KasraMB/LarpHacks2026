@@ -11,7 +11,7 @@ import { ClaimsLedger } from "../ClaimsLedger";
 import { ConversationForm } from "../ConversationForm";
 import { DeckBuilder } from "../DeckBuilder";
 import { PersonDetail } from "../PersonDetail";
-import { BackLink, Button, CheckIcon, ErrorMessage, Loading } from "../ui";
+import { BackLink, Button, CheckIcon, ErrorMessage, formatDate, Loading } from "../ui";
 
 export function PersonController({ personId }: { personId: string }) {
   const router = useRouter();
@@ -34,19 +34,12 @@ export function PersonController({ personId }: { personId: string }) {
   );
   usePolling(claimsPending, claims.reload);
   const deckId = deck.data && !isTerminal(deck.data.status) ? deck.data.id : null;
-  usePolling(deckId !== null, async () => {
-    if (!deckId) return;
-    try {
-      deck.setData(await api.getDeck({ id: deckId }));
-    } catch {
-      // Keep the last known deck; the next tick retries.
-    }
-  });
+  usePolling(deckId !== null, deck.reload);
 
   if (person.error?.code === "NOT_FOUND") {
     return (
       <section className="space-y-3 rounded-sm border border-dashed border-control bg-surface px-6 py-10">
-        <h2 className="text-[24px] font-bold tracking-[-0.02em]">Person not found</h2>
+        <h1 className="text-[24px] font-bold tracking-[-0.02em]">Person not found</h1>
         <p className="text-[15px] text-muted">This person does not exist or was deleted.</p>
         <Link href="/people" className="link text-sm font-semibold">
           Back to people
@@ -60,21 +53,30 @@ export function PersonController({ personId }: { personId: string }) {
     person.setData(updated);
     return updated;
   };
+  const recentClaims = [...(claims.data ?? [])].sort((a, b) => Date.parse(b.saidAt) - Date.parse(a.saidAt));
+  const flagged = recentClaims.filter((claim) => claim.contradictions.length > 0);
+  const detailsClass = "rounded-sm border border-line bg-surface px-5";
+  const summaryClass = "cursor-pointer py-3 text-base font-bold text-ink";
 
   return (
     <div className="space-y-8">
-      <BackLink href="/people">All people</BackLink>
-      <PersonDetail
-        state={{ data: person.data, loading: person.loading, error: person.error }}
-        onUpdate={updatePerson}
-        onDelete={async (input) => {
-          const result = await api.deletePerson(input);
-          router.push("/people");
-          return result;
-        }}
-      />
-      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)] lg:grid-rows-[auto_1fr] lg:gap-x-10">
-        <div className="lg:col-start-2 lg:row-start-1">
+      <section className="space-y-5" aria-labelledby="person-briefing-title">
+        <BackLink href="/people">All people</BackLink>
+        {person.loading && !person.data ? <Loading label="Loading briefing..." /> : null}
+        <ErrorMessage error={person.error} onRetry={person.reload} />
+        {person.data ? (
+          <div className="space-y-2">
+            <h1 id="person-briefing-title" className="break-words text-[32px] font-bold leading-tight tracking-[-0.03em] text-ink">
+              Prepare for {person.data.name}
+            </h1>
+            <p className="max-w-prose text-[15px] text-muted">
+              {person.data.lastConversationAt
+                ? `Last conversation: ${formatDate(person.data.lastConversationAt)}. A new deck uses research newer than this conversation.`
+                : "No conversation recorded yet. A new deck can use all available research for your shared interests."}
+            </p>
+          </div>
+        ) : null}
+        {person.data ? (
           <DeckBuilder
             personId={personId}
             state={{ data: deck.data, loading: deck.loading, error: deck.error }}
@@ -84,17 +86,36 @@ export function PersonController({ personId }: { personId: string }) {
               return built;
             }}
           />
+        ) : null}
+        <div className="space-y-2 rounded-sm border border-line bg-raised/75 p-5">
+          <h2 className="text-base font-bold text-ink">What they last heard</h2>
+          {claims.loading && !claims.data ? <Loading label="Loading claims..." /> : null}
+          <ErrorMessage error={claims.error} onRetry={claims.reload} />
+          {flagged.length > 0 ? (
+            <p className="text-sm font-semibold text-neg-ink">
+              {flagged.length} {flagged.length === 1 ? "claim has" : "claims have"} a possible contradiction.{" "}
+              <a href="#claim-history" className="link">Review claim history</a>.
+            </p>
+          ) : null}
+          {recentClaims[0] ? (
+            <>
+              <blockquote className="max-w-prose break-words text-[15px] text-ink">&ldquo;{recentClaims[0].text}&rdquo;</blockquote>
+              <p className="font-mono text-xs text-muted">
+                Said {formatDate(recentClaims[0].saidAt)} · {recentClaims[0].checkStatus === "completed"
+                  ? (recentClaims[0].contradictions.length > 0 ? "Possible contradiction" : "Checked — no contradictions found")
+                  : recentClaims[0].checkStatus === "failed" ? "Check unavailable — review claim history" : "Checking for contradictions…"}
+              </p>
+            </>
+          ) : !claims.loading && !claims.error ? (
+            <p className="text-sm text-muted">
+              No claims recorded yet. <a href="#record-conversation" className="link">Record a conversation</a> to keep track of what you said.
+            </p>
+          ) : null}
         </div>
-        <div className="space-y-10 lg:col-start-1 lg:row-span-2 lg:row-start-1">
-          <ClaimsLedger
-            personId={personId}
-            state={{ data: claims.data, loading: claims.loading, error: claims.error }}
-            onCreate={async (input) => {
-              const created = await api.createClaim(input);
-              claims.setData((list) => [...(list ?? []), created]);
-              return created;
-            }}
-          />
+      </section>
+      <details id="record-conversation" className={detailsClass}>
+        <summary className={summaryClass}>Record a conversation</summary>
+        <div className="pb-5 pt-2">
           <ConversationForm
             personId={personId}
             loading={convLoading}
@@ -119,7 +140,30 @@ export function PersonController({ personId }: { personId: string }) {
             }}
           />
         </div>
-        <aside className="lg:col-start-2 lg:row-start-2" aria-label="Shared interests">
+      </details>
+      <div id="claim-history">
+        <ClaimsLedger
+          personId={personId}
+          state={{ data: claims.data, loading: claims.loading, error: claims.error }}
+          onCreate={async (input) => {
+            const created = await api.createClaim(input);
+            claims.setData((list) => [...(list ?? []), created]);
+            return created;
+          }}
+        />
+      </div>
+      <details className={detailsClass}>
+        <summary className={summaryClass}>Edit person and shared interests</summary>
+        <div className="space-y-6 pb-5 pt-2">
+          <PersonDetail
+            state={{ data: person.data, loading: person.loading, error: person.error }}
+            onUpdate={updatePerson}
+            onDelete={async (input) => {
+              const result = await api.deletePerson(input);
+              router.push("/people");
+              return result;
+            }}
+          />
           {person.data ? (
             <InterestPicker
               key={person.data.updatedAt}
@@ -129,18 +173,16 @@ export function PersonController({ personId }: { personId: string }) {
               selected={person.data.interestIds}
               onSave={(interestIds) => {
                 const p = person.data!;
-                return updatePerson({
-                  id: p.id,
-                  data: { name: p.name, notes: p.notes, interestIds },
-                });
+                return updatePerson({ id: p.id, data: { name: p.name, notes: p.notes, interestIds } });
               }}
             />
           ) : null}
-        </aside>
-      </div>
+        </div>
+      </details>
     </div>
   );
 }
+
 
 function InterestPicker({
   interests,

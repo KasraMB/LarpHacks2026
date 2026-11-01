@@ -10,7 +10,7 @@ import { ArrowIcon, Button, CheckIcon, EmptyState, ErrorMessage, formatSerial, L
 export function isInteractiveTarget(target: EventTarget | null, includeButtons: boolean) {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable) return true;
-  const tags = includeButtons ? ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"] : ["INPUT", "TEXTAREA", "SELECT"];
+  const tags = includeButtons ? ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A", "SUMMARY"] : ["INPUT", "TEXTAREA", "SELECT"];
   return tags.includes(target.tagName);
 }
 
@@ -186,14 +186,24 @@ export function PrepMode({
               <ArrowIcon direction="left" />
               Previous
             </Button>
-            <Button
-              disabled={index < 0 || index >= cards.length - 1}
-              onClick={() => void onNext()}
-              className="min-h-11 px-4"
-            >
-              Next
-              <ArrowIcon />
-            </Button>
+            {index === cards.length - 1 && answerRevealed && deck ? (
+              <Link
+                href={`/decks/${deck.id}/live`}
+                className="group inline-flex min-h-11 items-center gap-2 rounded-sm border border-ink bg-ink px-4 text-sm font-semibold text-ground transition-opacity hover:opacity-90"
+              >
+                Ready? Go live
+                <ArrowIcon className="transition-transform duration-150 group-hover:translate-x-0.5" />
+              </Link>
+            ) : (
+              <Button
+                disabled={index < 0 || index >= cards.length - 1}
+                onClick={() => void onNext()}
+                className="min-h-11 px-4"
+              >
+                Next
+                <ArrowIcon />
+              </Button>
+            )}
           </div>
 
           <p className="hidden font-mono text-xs text-muted sm:block">

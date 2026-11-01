@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Public_Sans, Azeret_Mono } from "next/font/google";
+import { AccountAccess, AccountControls } from "@/components/AccountAccess";
 import { NavLinks } from "@/components/NavLinks";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { CrosshairIcon } from "@/components/ui";
@@ -71,11 +72,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-2 sm:gap-3">
               <NavLinks />
               <ThemeToggle />
+              <AccountControls />
             </div>
           </nav>
         </header>
         <main id="content" className="mx-auto w-full max-w-[1200px] px-4 pb-24 pt-7 sm:px-6 sm:pt-10">
-          {children}
+          <AccountAccess>{children}</AccountAccess>
         </main>
       </body>
     </html>

@@ -92,9 +92,9 @@ export function ClaimsLedger({ personId, state, onCreate }: ClaimsLedgerProps) {
     <section aria-labelledby="claims-ledger-title" className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3.5">
         <div>
-          <h3 id="claims-ledger-title" className="text-xl font-bold tracking-[-0.02em] text-ink">
-            Claims ledger
-          </h3>
+          <h2 id="claims-ledger-title" className="text-xl font-bold tracking-[-0.02em] text-ink">
+            Claim history
+          </h2>
           <p className="mt-1 text-sm text-muted">
             Everything you have told this person, newest first. New claims are checked against the old ones.
           </p>
@@ -138,7 +138,7 @@ export function ClaimsLedger({ personId, state, onCreate }: ClaimsLedgerProps) {
 
       <details className="group rounded-sm border border-line bg-surface">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-sm px-4 text-sm font-semibold text-ink transition-colors hover:bg-raised/60 sm:px-5 [&::-webkit-details-marker]:hidden">
-          <span>Add a single claim</span>
+          <span>Add a past claim</span>
           <span className="inline-flex items-center gap-2 font-mono text-xs text-muted">
             <span>QUICK LOG</span>
             <PlusIcon className="transition-transform duration-150 group-open:rotate-45" />
@@ -148,9 +148,13 @@ export function ClaimsLedger({ personId, state, onCreate }: ClaimsLedgerProps) {
           onSubmit={submit}
           className="grid gap-3.5 border-t border-line bg-ground/50 p-4 sm:grid-cols-[minmax(0,1fr)_14rem] sm:p-5"
         >
+          <p className="text-sm text-muted sm:col-span-2">
+            Add something you said earlier. This checks for contradictions without changing the last-conversation date
+            or research cutoff.
+          </p>
           <div className="sm:col-span-2">
             <TextArea
-              label="New claim"
+              label="What you said"
               value={text}
               onChange={(e) => setText(e.target.value)}
               required
@@ -159,7 +163,7 @@ export function ClaimsLedger({ personId, state, onCreate }: ClaimsLedgerProps) {
             />
           </div>
           <TextField
-            label="Said at"
+            label="When you said it"
             type="datetime-local"
             value={saidAt}
             onChange={(e) => setSaidAt(e.target.value)}
@@ -167,15 +171,17 @@ export function ClaimsLedger({ personId, state, onCreate }: ClaimsLedgerProps) {
           />
           <div className="flex items-end">
             <Button type="submit" busy={saving} disabled={!text.trim() || !saidAt} className="h-10 w-full">
-              Add claim
+              Save past claim
             </Button>
+          </div>
+          <div className="sm:col-span-2">
+            <ErrorMessage error={error} />
           </div>
         </form>
       </details>
 
-      <ErrorMessage error={error} />
       <ErrorMessage error={state.error} />
-      {state.loading && !state.data ? <Loading label="Loading claims ledger..." /> : null}
+      {state.loading && !state.data ? <Loading label="Loading claims..." /> : null}
       {!state.loading && state.data && claims.length === 0 ? (
         <EmptyState>No claims recorded for this person.</EmptyState>
       ) : null}
@@ -237,7 +243,7 @@ export function ClaimsLedger({ personId, state, onCreate }: ClaimsLedgerProps) {
                           Contradicted by {serialById.get(laterIds[0]) ?? "later claim"}
                         </button>
                       ) : null}
-                      <StatusBadge status={claim.checkStatus} />
+                      {claim.checkStatus !== "completed" ? <StatusBadge status={claim.checkStatus} /> : null}
                     </div>
                   </div>
 
@@ -247,6 +253,12 @@ export function ClaimsLedger({ personId, state, onCreate }: ClaimsLedgerProps) {
                       {claim.text}
                     </p>
                   </div>
+
+                  {claim.checkStatus === "completed" && !isFlagged ? (
+                    <p className="border-t border-rule px-4 py-2 text-xs text-pos-ink sm:px-5">
+                      Checked — no contradictions found
+                    </p>
+                  ) : null}
 
                   {/* Contradiction Alert Vector */}
                   {isFlagged ? (

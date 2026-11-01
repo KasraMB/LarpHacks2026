@@ -4,7 +4,7 @@ export default async function InterestPage({ params }: { params: Promise<{ inter
   const { interestId } = await params;
   return (
     <section>
-      <ResearchController interestId={interestId} />
+      <ResearchController key={interestId} interestId={interestId} />
     </section>
   );
 }

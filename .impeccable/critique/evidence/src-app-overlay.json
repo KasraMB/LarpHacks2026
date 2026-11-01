@@ -1,0 +1,300 @@
+{
+  "routes": [
+    {
+      "route": "/",
+      "title": "Alias",
+      "injected": {
+        "scripts": [
+          "http://127.0.0.1:3100/_next/static/chunks/1daa_next_dist_compiled_react-dom_cjs_react-dom-client_development_0mp0cp_t-ezj9.js",
+          "http://127.0.0.1:3100/_next/static/chunks/1q96_modules_next_dist_compiled_react-dom_cjs_react-dom_development_1sqry0_53krp4.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_react-dom_0grqycjrj6mju._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_1amofcmz--cdp._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_05y3oi5z9mc_3._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_%40swc_helpers_cjs_1r9vbqwj2323d._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/_1anvha4rlo79g._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/turbopack-_06rkbud3pyrlm._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/_219uq1sj0q91c._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_0inhh7tu7irea._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_zod_v4_core_1lh3ogd_3u630._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_zod_v4_classic_2183suwe3oacv._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_zod_v4_locales_1-ided7izgr--._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_react_0qox21c46arid._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/src_0ha181uslcafm._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_build_polyfills_polyfill-nomodule.js",
+          "http://127.0.0.1:3100/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsayzyj2p6._.js",
+          "http://127.0.0.1:8400/detect.js",
+          "http://127.0.0.1:3100/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0qva5cupmdgep._.js"
+        ],
+        "detectGlobals": [
+          "impeccableDetect",
+          "impeccableDetectAsync",
+          "impeccableScan",
+          "impeccableScanAsync",
+          "impeccableMeasureHiddenText",
+          "impeccableCollectVisualContrastCandidates",
+          "impeccableAnalyzeVisualContrast",
+          "impeccableGetLastVisualContrastAnalyses",
+          "impeccableSnapshotCapture",
+          "impeccableDetectFromSnapshot"
+        ],
+        "overlayEls": []
+      },
+      "console": [
+        {
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+        },
+        {
+          "type": "log",
+          "text": "[HMR] connected"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        },
+        {
+          "type": "startGroup",
+          "text": "%c[impeccable] 1 anti-pattern found color: oklch(84% 0.19 80.46); font-weight: bold"
+        },
+        {
+          "type": "log",
+          "text": "%cstraggler%c \"chat.\" alone on the last of 2 lines (4% of the measure) color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "endGroup",
+          "text": "console.groupEnd"
+        }
+      ]
+    },
+    {
+      "route": "/identity",
+      "title": "Alias",
+      "injected": {
+        "scripts": [
+          "http://127.0.0.1:3100/_next/static/chunks/1daa_next_dist_compiled_react-dom_cjs_react-dom-client_development_0mp0cp_t-ezj9.js",
+          "http://127.0.0.1:3100/_next/static/chunks/1q96_modules_next_dist_compiled_react-dom_cjs_react-dom_development_1sqry0_53krp4.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_react-dom_0grqycjrj6mju._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_1amofcmz--cdp._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_05y3oi5z9mc_3._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_%40swc_helpers_cjs_1r9vbqwj2323d._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/_1anvha4rlo79g._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/turbopack-_06rkbud3pyrlm._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/_0w29htq3e6-t0._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_0inhh7tu7irea._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_zod_v4_classic_0tlz9ehk4sgyj._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_zod_v4_core_14qn2mg1f8pkp._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_zod_v4_locales_1-ided7izgr--._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_react_0qox21c46arid._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/src_1fmvwy3xdbav3._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_build_polyfills_polyfill-nomodule.js",
+          "http://127.0.0.1:3100/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsayzyj2p6._.js",
+          "http://127.0.0.1:8400/detect.js",
+          "http://127.0.0.1:3100/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0qva5cupmdgep._.js"
+        ],
+        "detectGlobals": [
+          "impeccableDetect",
+          "impeccableDetectAsync",
+          "impeccableScan",
+          "impeccableScanAsync",
+          "impeccableMeasureHiddenText",
+          "impeccableCollectVisualContrastCandidates",
+          "impeccableAnalyzeVisualContrast",
+          "impeccableGetLastVisualContrastAnalyses",
+          "impeccableSnapshotCapture",
+          "impeccableDetectFromSnapshot"
+        ],
+        "overlayEls": []
+      },
+      "console": [
+        {
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+        },
+        {
+          "type": "log",
+          "text": "[HMR] connected"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        },
+        {
+          "type": "startGroup",
+          "text": "%c[impeccable] 1 anti-pattern found color: oklch(84% 0.19 80.46); font-weight: bold"
+        },
+        {
+          "type": "log",
+          "text": "%cstraggler%c \"chat.\" alone on the last of 2 lines (4% of the measure) color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "endGroup",
+          "text": "console.groupEnd"
+        },
+        {
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+        },
+        {
+          "type": "log",
+          "text": "[HMR] connected"
+        },
+        {
+          "type": "log",
+          "text": "%c[impeccable] No anti-patterns found. color: #22c55e; font-weight: bold"
+        }
+      ]
+    },
+    {
+      "route": "/people",
+      "title": "Alias",
+      "injected": {
+        "scripts": [
+          "http://127.0.0.1:3100/_next/static/chunks/1daa_next_dist_compiled_react-dom_cjs_react-dom-client_development_0mp0cp_t-ezj9.js",
+          "http://127.0.0.1:3100/_next/static/chunks/1q96_modules_next_dist_compiled_react-dom_cjs_react-dom_development_1sqry0_53krp4.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_react-dom_0grqycjrj6mju._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-67asdr9._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jmam7qwg.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_1amofcmz--cdp._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_client_1wygxxh5rwq0t._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_05y3oi5z9mc_3._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_%40swc_helpers_cjs_1r9vbqwj2323d._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/_1anvha4rlo79g._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/turbopack-_06rkbud3pyrlm._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/_1itkiv1v6pd-2._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_0inhh7tu7irea._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_zod_v4_core_1lh3ogd_3u630._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_zod_v4_classic_2183suwe3oacv._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_zod_v4_locales_1-ided7izgr--._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_compiled_react_0qox21c46arid._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/src_0ybi944070itu._.js",
+          "http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_build_polyfills_polyfill-nomodule.js",
+          "http://127.0.0.1:3100/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1mojsayzyj2p6._.js",
+          "http://127.0.0.1:8400/detect.js",
+          "http://127.0.0.1:3100/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_0qva5cupmdgep._.js"
+        ],
+        "detectGlobals": [
+          "impeccableDetect",
+          "impeccableDetectAsync",
+          "impeccableScan",
+          "impeccableScanAsync",
+          "impeccableMeasureHiddenText",
+          "impeccableCollectVisualContrastCandidates",
+          "impeccableAnalyzeVisualContrast",
+          "impeccableGetLastVisualContrastAnalyses",
+          "impeccableSnapshotCapture",
+          "impeccableDetectFromSnapshot"
+        ],
+        "overlayEls": []
+      },
+      "console": [
+        {
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+        },
+        {
+          "type": "log",
+          "text": "[HMR] connected"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        },
+        {
+          "type": "startGroup",
+          "text": "%c[impeccable] 1 anti-pattern found color: oklch(84% 0.19 80.46); font-weight: bold"
+        },
+        {
+          "type": "log",
+          "text": "%cstraggler%c \"chat.\" alone on the last of 2 lines (4% of the measure) color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "endGroup",
+          "text": "console.groupEnd"
+        },
+        {
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+        },
+        {
+          "type": "log",
+          "text": "[HMR] connected"
+        },
+        {
+          "type": "log",
+          "text": "%c[impeccable] No anti-patterns found. color: #22c55e; font-weight: bold"
+        },
+        {
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+        },
+        {
+          "type": "log",
+          "text": "[HMR] connected"
+        },
+        {
+          "type": "log",
+          "text": "%c[impeccable] No anti-patterns found. color: #22c55e; font-weight: bold"
+        }
+      ]
+    }
+  ],
+  "console": [
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "type": "startGroup",
+      "text": "%c[impeccable] 1 anti-pattern found color: oklch(84% 0.19 80.46); font-weight: bold"
+    },
+    {
+      "type": "log",
+      "text": "%cstraggler%c \"chat.\" alone on the last of 2 lines (4% of the measure) color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+    },
+    {
+      "type": "endGroup",
+      "text": "console.groupEnd"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "log",
+      "text": "%c[impeccable] No anti-patterns found. color: #22c55e; font-weight: bold"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "log",
+      "text": "%c[impeccable] No anti-patterns found. color: #22c55e; font-weight: bold"
+    }
+  ],
+  "browserErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}

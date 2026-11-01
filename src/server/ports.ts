@@ -38,20 +38,31 @@ export interface Repository {
     list(personId: string, page: PageRequest): Promise<Page<Conversation>>;
   };
   research: {
+    /** Atomically reuse active run or insert run and durable job. */
+    createOrReuseRun(run: ResearchRun): Promise<ResearchRun>;
     getRun(id: string): Promise<ResearchRun | null>;
     saveRun(run: ResearchRun): Promise<ResearchRun>;
     listRuns(interestId: string, page: PageRequest): Promise<Page<ResearchRun>>;
     listFacts(interestId: string, since: string | null, page: PageRequest): Promise<Page<ResearchFact>>;
-    upsertFacts(facts: ResearchFact[]): Promise<void>;
+    /** Returns newly inserted rows; repeated facts count as zero. */
+    upsertFacts(facts: ResearchFact[]): Promise<number>;
     findActiveRun(interestId: string): Promise<ResearchRun | null>;
   };
   decks: {
+    /** Atomically reuse matching work or insert snapshot and durable job. */
+    createOrReuse(record: DeckRecord, force: boolean): Promise<Deck>;
     get(id: string): Promise<Deck | null>;
     list(personId: string, page: PageRequest): Promise<Page<Deck>>;
     /** Persist public deck and private immutable inputs/cache key atomically. */
     save(record: DeckRecord): Promise<Deck>;
     getSnapshot(id: string): Promise<DeckSnapshot | null>;
     findReusable(personId: string, fingerprint: string): Promise<Deck | null>;
+  };
+  jobs: {
+    enqueue(job: Job): Promise<void>;
+    claim(workerId: string, leaseSeconds?: number): Promise<QueuedJob | null>;
+    complete(id: string, workerId: string): Promise<void>;
+    fail(id: string, workerId: string, error: string): Promise<void>;
   };
 }
 
@@ -87,10 +98,13 @@ export interface AiProvider {
   // Debrief is intentionally excluded until its product behavior is specified.
 }
 export type Job = { kind: "research"; runId: string } | { kind: "deck"; deckId: string } | { kind: "claim_check"; claimId: string };
+export interface QueuedJob { id: string; job: Job; attempts: number }
 export interface JobQueue { enqueue(job: Job): Promise<void> }
-export interface ResearchWorker { execute(runId: string): Promise<void> }
-export interface DeckWorker { execute(deckId: string): Promise<void> }
-export interface ClaimCheckWorker { execute(claimId: string): Promise<void> }
+/** Direct execution is a final attempt unless the durable queue schedules a retry. */
+export interface WorkerAttempt { willRetry: boolean }
+export interface ResearchWorker { execute(runId: string, attempt?: WorkerAttempt): Promise<void> }
+export interface DeckWorker { execute(deckId: string, attempt?: WorkerAttempt): Promise<void> }
+export interface ClaimCheckWorker { execute(claimId: string, attempt?: WorkerAttempt): Promise<void> }
 export interface ResearchScheduler { enqueueDaily(): Promise<{ runIds: string[] }> }
 export interface ServerDependencies {
   repository: Repository; ai: AiProvider; discovery: DiscoverySource[];

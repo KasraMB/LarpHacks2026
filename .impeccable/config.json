@@ -1,0 +1,15 @@
+{
+  "buildPath": "comp",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "createdAt": "2026-11-01T20:36:12.347Z",
+        "reason": "User confirmed: keep Arial for the existing interface."
+      }
+    ]
+  }
+}

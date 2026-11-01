@@ -13,6 +13,7 @@ export function PeopleController() {
       onCreate={async (input) => {
         const created = await api.createPerson(input);
         people.setData((list) => [created, ...(list ?? [])]);
+        await people.reload();
         return created;
       }}
       onUpdate={async (input) => {

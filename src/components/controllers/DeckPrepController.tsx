@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { Deck } from "@/contracts";
 import { api } from "@/lib/api";
 import { isTerminal, usePolling, useResource } from "@/lib/use-resource";
+import { DeckEvidenceProvider } from "@/components/DeckEvidence";
 import { PrepMode } from "@/components/PrepMode";
 
 export function sortDeck(deck: Deck | null): Deck | null {
@@ -21,14 +22,7 @@ export function DeckPrepController({ deckId }: { deckId: string }) {
   const index = Math.min(activeIndex, Math.max(cards.length - 1, 0));
   const activeCard = cards[index] ?? null;
 
-  const { setData } = resource;
-  usePolling(deck !== null && !isTerminal(deck.status), async () => {
-    try {
-      setData(await api.getDeck({ id: deckId }));
-    } catch {
-      // Keep the last good deck; the next tick retries.
-    }
-  });
+  usePolling(deck !== null && !isTerminal(deck.status), resource.reload);
 
   // Reveal state is keyed to the card so it resets whenever the card changes.
   const answerRevealed = activeCard !== null && revealedFor === activeCard.id;
@@ -36,20 +30,22 @@ export function DeckPrepController({ deckId }: { deckId: string }) {
     (revealed: boolean) => setRevealedFor(revealed && activeCard ? activeCard.id : null),
     [activeCard],
   );
-  const onPrevious = useCallback(async () => setActiveIndex(Math.max(index - 1, 0)), [index]);
-  const onNext = useCallback(async () => setActiveIndex(Math.min(index + 1, cards.length - 1)), [index, cards.length]);
+  const onPrevious = useCallback(async () => { setRevealedFor(null); setActiveIndex(Math.max(index - 1, 0)); }, [index]);
+  const onNext = useCallback(async () => { setRevealedFor(null); setActiveIndex(Math.min(index + 1, cards.length - 1)); }, [index, cards.length]);
 
   return (
-    <div className="space-y-4">
-      {deck ? <BackLink href={`/people/${deck.personId}`}>Back to person</BackLink> : null}
-      <PrepMode
-        state={{ data: deck, loading: resource.loading, error: resource.error }}
-        activeCard={activeCard}
-        answerRevealed={answerRevealed}
-        onRevealChange={onRevealChange}
-        onPrevious={onPrevious}
-        onNext={onNext}
-      />
-    </div>
+    <DeckEvidenceProvider deck={deck}>
+      <div className="space-y-4">
+        {deck ? <BackLink href={`/people/${deck.personId}`}>Back to person</BackLink> : null}
+        <PrepMode
+          state={{ data: deck, loading: resource.loading, error: resource.error }}
+          activeCard={activeCard}
+          answerRevealed={answerRevealed}
+          onRevealChange={onRevealChange}
+          onPrevious={onPrevious}
+          onNext={onNext}
+        />
+      </div>
+    </DeckEvidenceProvider>
   );
 }

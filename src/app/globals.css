@@ -134,6 +134,10 @@
     background: var(--color-muted);
   }
 
+  summary {
+    min-height: 44px;
+  }
+
   :focus-visible {
     outline: 2px solid var(--color-signal);
     outline-offset: 2px;

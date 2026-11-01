@@ -2,14 +2,8 @@
 
 import type { Card as CardModel } from "@/contracts";
 import type { FlashcardProps } from "./contracts";
-import {
-  Button,
-  CheckIcon,
-  ErrorMessage,
-  ExternalLinkIcon,
-  formatSerial,
-  Loading,
-} from "./ui";
+import { useDeckEvidence } from "./DeckEvidence";
+import { Button, ErrorMessage, formatSerial, Loading } from "./ui";
 
 export const cardTypeLabels: Record<CardModel["type"], { name: string; code: string; style: string }> = {
   back_story: {
@@ -48,29 +42,69 @@ export function CardTypeLabel({ type, large = false }: { type: CardModel["type"]
 }
 
 export function EvidenceList({ evidence }: { evidence: CardModel["evidence"] }) {
+  const { data, hasDeck, loading, researchSince } = useDeckEvidence();
+  if (evidence.length === 0) return null;
+
   return (
-    <ul className="flex flex-wrap gap-2 text-xs text-muted" aria-label="Supporting receipts">
-      {evidence.map((item, index) => (
-        <li key={index}>
-          {item.kind === "research" ? (
-            <a
-              href={item.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-sm border border-night-line bg-night-raised px-2.5 py-1 font-mono text-[11px] font-medium text-night-muted transition-colors hover:border-night-ink hover:text-night-ink"
-            >
-              <span>SRC-{String(index + 1).padStart(2, "0")}: {hostname(item.sourceUrl)}</span>
-              <ExternalLinkIcon />
-            </a>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-sm border border-night-line bg-night-raised px-2.5 py-1 font-mono text-[11px] font-medium text-night-muted">
-              <CheckIcon className="size-3" />
-              <span>RECEIPT: FROM LOGGED CLAIM</span>
-            </span>
-          )}
-        </li>
-      ))}
-    </ul>
+    <details className="text-sm text-night-ink">
+      <summary className="cursor-pointer font-medium underline decoration-night-line underline-offset-4">Why this card?</summary>
+      <div className="mt-3 space-y-3">
+        {loading && !data ? <p role="status" className="text-night-muted">Loading the saved evidence for this deck...</p> : null}
+        <ul className="space-y-3">
+          {evidence.map((item) => {
+            if (item.kind === "claim") {
+              const claim = data?.claims[item.claimId];
+              if (!claim) {
+                return (
+                  <li key={`claim-${item.claimId}`}>
+                    <p className="font-medium">Conversation claim</p>
+                    <p className="text-night-muted">{loading ? "Loading claim details…" : "Claim details could not be loaded. The card still reflects the claim used when the deck was built."}</p>
+                  </li>
+                );
+              }
+              const speaker = data?.person?.id === claim.personId ? data.person?.name ?? "the person in this conversation" : "the person in this conversation";
+              return (
+                <li key={`claim-${item.claimId}`} className="space-y-1">
+                  <p className="font-medium">You told {speaker} · {formatDate(claim.saidAt)}</p>
+                  <blockquote className="break-words whitespace-pre-wrap text-night-ink">“{claim.text}”</blockquote>
+                </li>
+              );
+            }
+
+            const fact = data?.facts[item.factId];
+            const sourceUrl = fact?.source.url ?? item.sourceUrl;
+            return (
+              <li key={`research-${item.factId}`} className="space-y-1">
+                {fact ? (
+                  <>
+                    <p className="font-medium">{fact.source.title}</p>
+                    <p className="break-words whitespace-pre-wrap text-night-ink">{fact.text}</p>
+                    <p className="text-night-muted">
+                      {fact.source.publishedAt ? `Published ${formatDate(fact.source.publishedAt)}` : `Collected ${formatDate(fact.source.retrievedAt)}`}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-night-muted">{loading ? "Loading research details…" : "Research details could not be loaded. This is the source saved with the card."}</p>
+                )}
+                <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="break-all text-night-ink underline">
+                  {fact ? "Open source" : `Open saved source (${hostname(sourceUrl)})`}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="space-y-1 border-t border-night-line pt-3 text-xs text-night-muted">
+          <p>This card uses the evidence saved with this deck. New conversations or research are not added automatically; build a new deck to use updated information.</p>
+          <p>
+            {hasDeck
+              ? researchSince
+                ? `Research cutoff: ${formatDate(researchSince)}. The deck considered research newer than this time.`
+                : "This deck considered all available research, with no conversation cutoff."
+              : "This evidence is not attached to a saved deck snapshot."}
+          </p>
+        </div>
+      </div>
+    </details>
   );
 }
 
@@ -80,6 +114,12 @@ function hostname(url: string) {
   } catch {
     return url;
   }
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(date) + " UTC";
 }
 
 export function Flashcard({ state, answerRevealed, onRevealChange }: FlashcardProps) {

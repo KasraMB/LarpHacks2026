@@ -60,6 +60,7 @@ export function ResearchController({ interestId }: { interestId: string }) {
           </h1>
           <span className="serial-tag">UPDATED: {formatCoordDate(interest.updatedAt)}</span>
         </div>
+        <p className="max-w-prose text-sm text-muted">Alias finds sources automatically from this topic using news search, Hacker News, Reddit and Wikipedia. Custom feeds, if added, are extra sources.</p>
         {interest.searchTerms.length > 0 ? (
           <div className="flex flex-wrap items-center gap-1.5 pt-1 text-sm text-muted">
             <span className="mr-1 font-mono text-xs font-semibold text-muted">SEARCH TERMS:</span>

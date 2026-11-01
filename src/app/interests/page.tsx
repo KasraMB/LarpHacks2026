@@ -5,11 +5,11 @@ export default function InterestsPage() {
   return (
     <section>
       <PageHeader
-        title="Interests"
+        title="Skills library"
         aside={<span className="serial-tag">SECTOR // FEEDS</span>}
       >
-        Topics Alias researches across news feeds, Hacker News, Reddit, and Wikipedia so your cover story stays current
-        between conversations.
+        Choose a public skill for your people, or create a public or private one. Alias finds sources from the topic
+        when you run research. Your persona and conversations stay private.
       </PageHeader>
       <InterestsController />
     </section>

@@ -1,0 +1,205 @@
+{
+  "url": "http://127.0.0.1:3100",
+  "viewports": [
+    {
+      "viewport": "390",
+      "typeButtons": [
+        {
+          "name": "Back story",
+          "disabled": false,
+          "pressed": "true"
+        },
+        {
+          "name": "What changed",
+          "disabled": false,
+          "pressed": "false"
+        },
+        {
+          "name": "If she asks",
+          "disabled": false,
+          "pressed": "false"
+        },
+        {
+          "name": "Don't say",
+          "disabled": false,
+          "pressed": "false"
+        }
+      ],
+      "loadingText": 0,
+      "evidenceInitiallyClosed": true,
+      "evidenceText": "Why this card?\n\nFictional demo article\n\nFictional fixture: the Raptors announced a lineup change.\n\nPublished Nov 1, 2026, 12:00 PM UTC\n\nOpen source\n\nThis card uses the evidence saved with this deck. New conversations or research are not added automatically; build a new deck to use updated information.\n\nResearch cutoff: Oct 25, 2026, 12:00 PM UTC. The deck considered research newer than this time.",
+      "sourceUrl": "https://example.com/demo-news",
+      "dontSayPrompt": "Which claim would conflict?",
+      "dontSayPressed": "true",
+      "arrowLeftPrompt": "Which team do you follow?",
+      "nextPrompt": "Which claim would conflict?",
+      "previousPrompt": "Which team do you follow?",
+      "overflow": {
+        "viewport": 390,
+        "document": 390,
+        "body": 390
+      },
+      "contrast": {
+        "selectedType": {
+          "text": "If she asks",
+          "foreground": "lab(1.76974 1.32743 -9.28855)",
+          "background": "rgb(255, 255, 255)",
+          "fontSize": "14px",
+          "ratio": 20.16
+        },
+        "prompt": {
+          "text": "Which team do you follow?",
+          "foreground": "rgb(255, 255, 255)",
+          "background": "lab(1.76974 1.32743 -9.28855)",
+          "fontSize": "30px",
+          "ratio": 20.16
+        },
+        "cutoff": {
+          "text": "Research cutoff: Oct 25, 2026, 12:00 PM UTC. The deck considered ",
+          "foreground": "lab(35.5623 -1.74978 -15.4316)",
+          "background": "rgb(255, 255, 255)",
+          "fontSize": "12px",
+          "ratio": 7.58
+        },
+        "sourceLink": null
+      }
+    },
+    {
+      "viewport": "768",
+      "typeButtons": [
+        {
+          "name": "Back story",
+          "disabled": false,
+          "pressed": "true"
+        },
+        {
+          "name": "What changed",
+          "disabled": false,
+          "pressed": "false"
+        },
+        {
+          "name": "If she asks",
+          "disabled": false,
+          "pressed": "false"
+        },
+        {
+          "name": "Don't say",
+          "disabled": false,
+          "pressed": "false"
+        }
+      ],
+      "loadingText": 0,
+      "evidenceInitiallyClosed": true,
+      "evidenceText": "Why this card?\n\nFictional demo article\n\nFictional fixture: the Raptors announced a lineup change.\n\nPublished Nov 1, 2026, 12:00 PM UTC\n\nOpen source\n\nThis card uses the evidence saved with this deck. New conversations or research are not added automatically; build a new deck to use updated information.\n\nResearch cutoff: Oct 25, 2026, 12:00 PM UTC. The deck considered research newer than this time.",
+      "sourceUrl": "https://example.com/demo-news",
+      "dontSayPrompt": "Which claim would conflict?",
+      "dontSayPressed": "true",
+      "arrowLeftPrompt": "Which team do you follow?",
+      "nextPrompt": "Which claim would conflict?",
+      "previousPrompt": "Which team do you follow?",
+      "overflow": {
+        "viewport": 768,
+        "document": 768,
+        "body": 768
+      },
+      "contrast": {
+        "selectedType": {
+          "text": "If she asks",
+          "foreground": "lab(1.76974 1.32743 -9.28855)",
+          "background": "rgb(255, 255, 255)",
+          "fontSize": "14px",
+          "ratio": 20.16
+        },
+        "prompt": {
+          "text": "Which team do you follow?",
+          "foreground": "rgb(255, 255, 255)",
+          "background": "lab(1.76974 1.32743 -9.28855)",
+          "fontSize": "36px",
+          "ratio": 20.16
+        },
+        "cutoff": {
+          "text": "Research cutoff: Oct 25, 2026, 12:00 PM UTC. The deck considered ",
+          "foreground": "lab(35.5623 -1.74978 -15.4316)",
+          "background": "rgb(255, 255, 255)",
+          "fontSize": "12px",
+          "ratio": 7.58
+        },
+        "sourceLink": null
+      }
+    },
+    {
+      "viewport": "1440",
+      "typeButtons": [
+        {
+          "name": "Back story",
+          "disabled": false,
+          "pressed": "true"
+        },
+        {
+          "name": "What changed",
+          "disabled": false,
+          "pressed": "false"
+        },
+        {
+          "name": "If she asks",
+          "disabled": false,
+          "pressed": "false"
+        },
+        {
+          "name": "Don't say",
+          "disabled": false,
+          "pressed": "false"
+        }
+      ],
+      "loadingText": 0,
+      "evidenceInitiallyClosed": true,
+      "evidenceText": "Why this card?\n\nFictional demo article\n\nFictional fixture: the Raptors announced a lineup change.\n\nPublished Nov 1, 2026, 12:00 PM UTC\n\nOpen source\n\nThis card uses the evidence saved with this deck. New conversations or research are not added automatically; build a new deck to use updated information.\n\nResearch cutoff: Oct 25, 2026, 12:00 PM UTC. The deck considered research newer than this time.",
+      "sourceUrl": "https://example.com/demo-news",
+      "dontSayPrompt": "Which claim would conflict?",
+      "dontSayPressed": "true",
+      "arrowLeftPrompt": "Which team do you follow?",
+      "nextPrompt": "Which claim would conflict?",
+      "previousPrompt": "Which team do you follow?",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "body": 1440
+      },
+      "contrast": {
+        "selectedType": {
+          "text": "If she asks",
+          "foreground": "lab(1.76974 1.32743 -9.28855)",
+          "background": "rgb(255, 255, 255)",
+          "fontSize": "14px",
+          "ratio": 20.16
+        },
+        "prompt": {
+          "text": "Which team do you follow?",
+          "foreground": "rgb(255, 255, 255)",
+          "background": "lab(1.76974 1.32743 -9.28855)",
+          "fontSize": "36px",
+          "ratio": 20.16
+        },
+        "cutoff": {
+          "text": "Research cutoff: Oct 25, 2026, 12:00 PM UTC. The deck considered ",
+          "foreground": "lab(35.5623 -1.74978 -15.4316)",
+          "background": "rgb(255, 255, 255)",
+          "fontSize": "12px",
+          "ratio": 7.58
+        },
+        "sourceLink": null
+      }
+    }
+  ],
+  "screenshots": [
+    "deck-live-loaded-390-evidence-closed.png",
+    "deck-live-loaded-390-research-evidence-open.png",
+    "deck-live-loaded-768-evidence-closed.png",
+    "deck-live-loaded-768-research-evidence-open.png",
+    "deck-live-loaded-1440-evidence-closed.png",
+    "deck-live-loaded-1440-research-evidence-open.png"
+  ],
+  "consoleErrors": [
+    "390px console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}
