@@ -1,0 +1,30 @@
+[
+  {
+    "width": 390,
+    "partialBeforeFinal": true,
+    "streamed": true,
+    "stopAborts": true,
+    "lateCallbacksDropped": true,
+    "typedFallback": true,
+    "manualNavigation": true,
+    "permissionDenied": true,
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "partialBeforeFinal": true,
+    "streamed": true,
+    "stopAborts": true,
+    "lateCallbacksDropped": true,
+    "typedFallback": true,
+    "manualNavigation": true,
+    "permissionDenied": true,
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "unsupportedBrowser": true,
+    "typedAvailable": true
+  }
+]

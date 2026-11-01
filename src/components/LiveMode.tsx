@@ -6,6 +6,7 @@ import type { LiveModeProps } from "./contracts";
 import { cardTypeLabels, CardTypeLabel, EvidenceList } from "./Flashcard";
 import { isInteractiveTarget } from "./PrepMode";
 import { Button, EmptyState, ErrorMessage } from "./ui";
+import { LiveAssistant } from "./LiveAssistant";
 
 export function LiveMode({ state, activeCard, topics, activeInterestId, onPrevious, onNext, onJumpToInterest, onJumpToType }: LiveModeProps) {
   const { data: deck, loading, error } = state;
@@ -46,6 +47,9 @@ export function LiveMode({ state, activeCard, topics, activeInterestId, onPrevio
         <div className="text-slate-900"><EmptyState>This deck has no cards.</EmptyState></div>
       ) : null}
 
+      {deck?.status === "completed" && cards.length > 0 ? <LiveAssistant key={deck.id} deck={deck} /> : null}
+
+      {cards.length > 0 ? <h2 className="text-lg font-semibold">Browse saved cards</h2> : null}
       {cards.length > 0 ? <div className="flex flex-wrap gap-2" role="group" aria-label="Card types">
         {(Object.keys(cardTypeLabels) as Array<keyof typeof cardTypeLabels>).map((type) => {
           const available = cards.some((card) => card.type === type && (!activeInterestId || card.interestIds.includes(activeInterestId)));

@@ -51,7 +51,7 @@ Seven integration checks passed against a real disposable PostgreSQL database. P
 
 ## Behavior and layout
 
-The live backend accepts partial transcripts at `POST /api/live/suggest`, returns saved-card matches immediately, and streams a short beginner-friendly suggestion using Featherless. Microphone capture and frontend integration are separate; see the [Live integration contract](docs/LIVE_INTEGRATION.md) for interim speech results, retrieval-only updates, cancellation, limits, and NDJSON events.
+Open a completed deck's **Go live** link and choose **Start listening** for interim speech-to-text, immediate saved-card matches, and streamed beginner-friendly suggestions. A typed fallback and manual card browsing remain available. Speech recognition needs a supporting browser over HTTPS (or localhost); the microphone hears nearby audio and does not automatically capture a remote call. **Stop** ends capture and requests. No new credentials are needed beyond Featherless. See the [Live integration contract](docs/LIVE_INTEGRATION.md) for browser support, privacy, cancellation, limits, and the streaming API.
 
 Services preserve claims when AI checks fail, record conversations and cutoff changes atomically, and use only each person's selected topics for decks. Research retains source metadata, tolerates individual source failures, bounds requests, and deduplicates stored facts. Decks persist immutable input snapshots, model/prompt versions, evidence, and cache fingerprints. Durable Postgres jobs have leases, three attempts, and retry backoff.
 
