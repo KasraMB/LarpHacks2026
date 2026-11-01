@@ -1,6 +1,7 @@
 ﻿import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createFeatherlessProvider } from "@/server/ai";
+import { createFeatherlessProvider, FEATHERLESS_LIMITS } from "@/server/ai";
+import { deckGenerationFailure } from "@/server/ai/errors";
 import type { DeckContext, ReadArticle } from "@/server/ports";
 import type { Claim, Interest } from "@/contracts";
 
@@ -23,13 +24,13 @@ const article: ReadArticle = {
   text: "The home team won. Fans celebrated the finish.",
 };
 
-function mockFetch(content: string, capture?: (body: Record<string, unknown>) => void): typeof fetch {
+function mockFetch(content: string, capture?: (body: Record<string, unknown>) => void, finishReason = "stop"): typeof fetch {
   return async (_input, init) => {
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     capture?.(body);
     return new Response(JSON.stringify({
       id: "completion-1", object: "chat.completion", created: 1, model: "test/model",
-      choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content } }],
+      choices: [{ index: 0, finish_reason: finishReason, message: { role: "assistant", content } }],
       usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
     }), { status: 200, headers: { "content-type": "application/json" } });
   };
@@ -91,4 +92,50 @@ test("deck success requires all four card types and preserves valid supplied evi
   const result = await provider.generateDeck(context);
   assert.equal(result.cards.length, 4);
   assert.equal(result.cards[3].type, "dont_say");
+});
+
+test("research-only decks preserve exact evidence and receive a larger bounded output budget", async () => {
+  const fact = { id: "fact-" + "a".repeat(64), interestId: interest.id, runId: "run-1", text: "The home team won.", kind: "reported_fact" as const, source: article.source, createdAt: claim.createdAt };
+  const cards = ["back_story", "what_changed", "if_she_asks", "dont_say"].map((type, position) => ({
+    type, interestIds: [interest.id], prompt: "What can you discuss?", answer: "The home team won.", position,
+    evidence: [{ kind: "research", factId: fact.id, sourceUrl: fact.source.url }],
+  }));
+  let budget: unknown;
+  const provider = createFeatherlessProvider({ env, fetch: mockFetch(JSON.stringify({ cards, warnings: [] }), body => { budget = body.max_tokens; }) });
+  const result = await provider.generateDeck({ ...context, claims: [], facts: [fact] });
+  assert.equal(result.cards.length, 4);
+  assert.deepEqual(result.cards[0].evidence, cards[0].evidence);
+  assert.equal(budget, 3000);
+  assert.ok(FEATHERLESS_LIMITS.deckTimeoutMs < 220_000);
+});
+
+test("truncation, input bounds, missing configuration and malformed JSON have safe distinct failure reasons", async () => {
+  const cases = [
+    { provider: createFeatherlessProvider({ env, fetch: mockFetch('{"cards":[', undefined, "length") }), input: context, code: "AI_OUTPUT_TRUNCATED" },
+    { provider: createFeatherlessProvider({ env, fetch: mockFetch("not JSON with private-input") }), input: context, code: "AI_INVALID_OUTPUT" },
+    { provider: createFeatherlessProvider({ env, fetch: mockFetch("{}") }), input: context, code: "AI_INVALID_OUTPUT" },
+    { provider: createFeatherlessProvider({ env: { FEATHERLESS_API_KEY: undefined, FEATHERLESS_MODEL: undefined } }), input: context, code: "AI_MISSING_KEY" },
+    { provider: createFeatherlessProvider({ env: { FEATHERLESS_API_KEY: "private-input", FEATHERLESS_MODEL: undefined } }), input: context, code: "AI_MISSING_MODEL" },
+    { provider: createFeatherlessProvider({ env, fetch: mockFetch("{}") }), input: { ...context, identity: { ...context.identity, background: "private-input".repeat(4000) } }, code: "AI_INPUT_TOO_LARGE" },
+  ];
+  for (const item of cases) {
+    await assert.rejects(item.provider.generateDeck(item.input), (error: unknown) => {
+      const failure = deckGenerationFailure(error);
+      assert.equal(failure.code, item.code);
+      assert.doesNotMatch(JSON.stringify(failure), /private-input/);
+      return true;
+    });
+  }
+});
+
+test("HTTP provider failures expose bounded categories without response bodies or credentials", async () => {
+  for (const [status, code] of [[401, "AI_AUTHENTICATION"], [403, "AI_ACCESS_DENIED"], [402, "AI_PAYMENT_REQUIRED"], [404, "AI_MODEL_UNAVAILABLE"], [429, "AI_RATE_LIMIT"], [400, "AI_REQUEST_REJECTED"], [503, "AI_PROVIDER_ERROR"]] as const) {
+    const provider = createFeatherlessProvider({ env, fetch: async () => new Response(JSON.stringify({ error: { message: "private-input test-key person-secret" } }), { status, headers: { "content-type": "application/json" } }) });
+    await assert.rejects(provider.generateDeck(context), (error: unknown) => {
+      const failure = deckGenerationFailure(error);
+      assert.equal(failure.code, code);
+      assert.doesNotMatch(JSON.stringify(failure), /private-input|test-key|person-secret/);
+      return true;
+    });
+  }
 });
