@@ -51,6 +51,8 @@ Seven integration checks passed against a real disposable PostgreSQL database. P
 
 ## Behavior and layout
 
+The live backend accepts partial transcripts at `POST /api/live/suggest`, returns saved-card matches immediately, and streams a short beginner-friendly suggestion using Featherless. Microphone capture and frontend integration are separate; see the [Live integration contract](docs/LIVE_INTEGRATION.md) for interim speech results, retrieval-only updates, cancellation, limits, and NDJSON events.
+
 Services preserve claims when AI checks fail, record conversations and cutoff changes atomically, and use only each person's selected topics for decks. Research retains source metadata, tolerates individual source failures, bounds requests, and deduplicates stored facts. Decks persist immutable input snapshots, model/prompt versions, evidence, and cache fingerprints. Durable Postgres jobs have leases, three attempts, and retry backoff.
 
 ```text
