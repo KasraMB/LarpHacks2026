@@ -1,0 +1,202 @@
+{
+  "preflight": {
+    "title": "Critique injection preflight",
+    "scriptAppended": true,
+    "executed": true,
+    "url": "http://127.0.0.1:3100/"
+  },
+  "routes": [
+    {
+      "route": "/",
+      "title": "Alias",
+      "url": "http://127.0.0.1:3100/",
+      "heading": [
+        "Alias"
+      ],
+      "desktop": {
+        "scrollWidth": 1365,
+        "innerWidth": 1365,
+        "bodyHeight": 900,
+        "landmarks": {
+          "main": 1,
+          "nav": 1
+        },
+        "buttons": [],
+        "inputs": [],
+        "unnamedButtons": 0
+      },
+      "mobile": {
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflow": false,
+        "bodyHeight": 844
+      }
+    },
+    {
+      "route": "/identity",
+      "title": "Alias",
+      "url": "http://127.0.0.1:3100/identity",
+      "heading": [
+        "Cover identity"
+      ],
+      "desktop": {
+        "scrollWidth": 1365,
+        "innerWidth": 1365,
+        "bodyHeight": 900,
+        "landmarks": {
+          "main": 1,
+          "nav": 1
+        },
+        "buttons": [
+          {
+            "text": "Save changes",
+            "aria": null,
+            "disabled": false
+          }
+        ],
+        "inputs": [
+          {
+            "tag": "INPUT",
+            "type": "text",
+            "placeholder": null,
+            "label": "Name",
+            "aria": null
+          },
+          {
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "placeholder": null,
+            "label": "Background\nWho this identity is: job, hometown, history, anything you need to stay consistent about.",
+            "aria": null
+          }
+        ],
+        "unnamedButtons": 0
+      },
+      "mobile": {
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflow": false,
+        "bodyHeight": 844
+      }
+    },
+    {
+      "route": "/people",
+      "title": "Alias",
+      "url": "http://127.0.0.1:3100/people",
+      "heading": [
+        "People"
+      ],
+      "desktop": {
+        "scrollWidth": 1365,
+        "innerWidth": 1365,
+        "bodyHeight": 900,
+        "landmarks": {
+          "main": 1,
+          "nav": 1
+        },
+        "buttons": [
+          {
+            "text": "Add person",
+            "aria": null,
+            "disabled": true
+          },
+          {
+            "text": "Delete",
+            "aria": "Delete Dana",
+            "disabled": false
+          }
+        ],
+        "inputs": [
+          {
+            "tag": "INPUT",
+            "type": "text",
+            "placeholder": null,
+            "label": "Name",
+            "aria": null
+          },
+          {
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "placeholder": null,
+            "label": "Notes",
+            "aria": null
+          }
+        ],
+        "unnamedButtons": 0
+      },
+      "mobile": {
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflow": false,
+        "bodyHeight": 844
+      }
+    },
+    {
+      "route": "/interests",
+      "title": "Alias",
+      "url": "http://127.0.0.1:3100/interests",
+      "heading": [
+        "Interests"
+      ],
+      "desktop": {
+        "scrollWidth": 1365,
+        "innerWidth": 1365,
+        "bodyHeight": 903,
+        "landmarks": {
+          "main": 1,
+          "nav": 1
+        },
+        "buttons": [
+          {
+            "text": "Edit",
+            "aria": null,
+            "disabled": false
+          },
+          {
+            "text": "Delete",
+            "aria": null,
+            "disabled": false
+          },
+          {
+            "text": "Add interest",
+            "aria": null,
+            "disabled": false
+          }
+        ],
+        "inputs": [
+          {
+            "tag": "INPUT",
+            "type": "text",
+            "placeholder": null,
+            "label": "Name",
+            "aria": null
+          },
+          {
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "placeholder": null,
+            "label": "Search terms\nSeparate with commas or new lines.",
+            "aria": null
+          },
+          {
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "placeholder": null,
+            "label": "Feed URLs\nOne URL per line.",
+            "aria": null
+          }
+        ],
+        "unnamedButtons": 0
+      },
+      "mobile": {
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflow": false,
+        "bodyHeight": 927
+      }
+    }
+  ],
+  "browserErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}

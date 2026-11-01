@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import type { LiveModeProps } from "./contracts";
-import { CardTypeLabel, EvidenceList } from "./Flashcard";
+import { cardTypeLabels, CardTypeLabel, EvidenceList } from "./Flashcard";
 import { isInteractiveTarget } from "./PrepMode";
 import { Button, EmptyState, ErrorMessage } from "./ui";
 
-export function LiveMode({ state, activeCard, topics, activeInterestId, onPrevious, onNext, onJumpToInterest }: LiveModeProps) {
+export function LiveMode({ state, activeCard, topics, activeInterestId, onPrevious, onNext, onJumpToInterest, onJumpToType }: LiveModeProps) {
   const { data: deck, loading, error } = state;
   const cards = deck?.cards ?? [];
   const index = activeCard ? cards.findIndex((c) => c.id === activeCard.id) : -1;
@@ -46,6 +46,21 @@ export function LiveMode({ state, activeCard, topics, activeInterestId, onPrevio
         <div className="text-slate-900"><EmptyState>This deck has no cards.</EmptyState></div>
       ) : null}
 
+      {cards.length > 0 ? <div className="flex flex-wrap gap-2" role="group" aria-label="Card types">
+        {(Object.keys(cardTypeLabels) as Array<keyof typeof cardTypeLabels>).map((type) => {
+          const available = cards.some((card) => card.type === type && (!activeInterestId || card.interestIds.includes(activeInterestId)));
+          const selected = activeCard?.type === type;
+          return <button
+            key={type}
+            type="button"
+            aria-pressed={selected}
+            disabled={!available}
+            onClick={() => void onJumpToType(type)}
+            className={`min-h-11 rounded-md border px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${selected ? "border-white bg-white text-slate-950" : "border-slate-500 text-white hover:bg-slate-800"}`}
+          >{cardTypeLabels[type].name}</button>;
+        })}
+      </div> : null}
+
       {topics.length > 0 ? (
         <ul className="flex flex-wrap gap-2" aria-label="Topics">
           {topics.map((topic) => {
@@ -69,18 +84,21 @@ export function LiveMode({ state, activeCard, topics, activeInterestId, onPrevio
       {activeCard ? (
         <div aria-live="polite" className="space-y-4">
           <CardTypeLabel type={activeCard.type} large />
-          <h2 className="text-3xl font-bold leading-tight sm:text-4xl">{activeCard.prompt}</h2>
-          <p className="text-2xl leading-snug text-slate-100 sm:text-3xl">{activeCard.answer}</p>
+          <h2 className="break-words text-3xl font-bold leading-tight sm:text-4xl">{activeCard.prompt}</h2>
+          <p className="break-words text-2xl leading-snug text-slate-100 sm:text-3xl">{activeCard.answer}</p>
           <div className="rounded-md bg-white p-3"><EvidenceList evidence={activeCard.evidence} /></div>
         </div>
       ) : null}
 
       {cards.length > 0 ? (
-        <div className="flex items-center justify-between gap-3">
-          <Button variant="secondary" className="px-5 py-3 text-lg" disabled={index <= 0} onClick={() => void onPrevious()}>Previous</Button>
-          <span className="text-slate-300">{index + 1} / {cards.length}</span>
-          <Button variant="secondary" className="px-5 py-3 text-lg" disabled={index < 0 || index >= cards.length - 1} onClick={() => void onNext()}>Next</Button>
-        </div>
+        <>
+          <div className="flex items-center justify-between gap-3">
+            <Button variant="secondary" className="px-5 py-3 text-lg" disabled={index <= 0} onClick={() => void onPrevious()}>Previous</Button>
+            <span className="text-slate-300">{index + 1} / {cards.length}</span>
+            <Button variant="secondary" className="px-5 py-3 text-lg" disabled={index < 0 || index >= cards.length - 1} onClick={() => void onNext()}>Next</Button>
+          </div>
+          <p className="text-xs text-slate-300">Use left and right arrow keys to move between cards.</p>
+        </>
       ) : null}
     </section>
   );

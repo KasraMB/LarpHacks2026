@@ -32,15 +32,17 @@ export function ClaimsLedger({ personId, state, onCreate }: ClaimsLedgerProps) {
 
   return (
     <section aria-labelledby="claims-ledger-title" className="space-y-4">
-      <h3 id="claims-ledger-title" className="text-lg font-semibold">Claims ledger</h3>
-      <Card>
-        <form onSubmit={submit} className="space-y-3">
-          <TextArea label="New claim" value={text} onChange={(e) => setText(e.target.value)} required />
-          <TextField label="Said at" type="datetime-local" value={saidAt} onChange={(e) => setSaidAt(e.target.value)} required />
-          <Button type="submit" busy={saving} disabled={!text.trim() || !saidAt}>Add claim</Button>
+      <h2 id="claims-ledger-title" className="text-lg font-semibold">Claim history</h2>
+      <details className="rounded-lg border border-slate-200 bg-white p-4">
+        <summary className="cursor-pointer py-1 text-sm font-medium">Add a past claim</summary>
+        <form onSubmit={submit} className="space-y-3 pt-3">
+          <p className="text-sm text-slate-600">Add something you said earlier. This checks for contradictions without changing the last-conversation date or research cutoff.</p>
+          <TextArea label="What you said" value={text} onChange={(e) => setText(e.target.value)} required />
+          <TextField label="When you said it" type="datetime-local" value={saidAt} onChange={(e) => setSaidAt(e.target.value)} required />
+          <Button type="submit" busy={saving} disabled={!text.trim() || !saidAt}>Save past claim</Button>
+          <ErrorMessage error={error} />
         </form>
-      </Card>
-      <ErrorMessage error={error} />
+      </details>
       <ErrorMessage error={state.error} />
       {state.loading && !state.data ? <Loading label="Loading claims..." /> : null}
       {!state.loading && state.data && claims.length === 0 ? <EmptyState>No claims recorded for this person.</EmptyState> : null}
@@ -52,9 +54,10 @@ export function ClaimsLedger({ personId, state, onCreate }: ClaimsLedgerProps) {
               <Card className={flagged ? "border-red-400 bg-red-50" : ""}>
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-medium">{claim.text}</p>
-                  <StatusBadge status={claim.checkStatus} />
+                  {claim.checkStatus !== "completed" ? <StatusBadge status={claim.checkStatus} /> : null}
                 </div>
                 <p className="mt-1 text-xs text-slate-500">Said {formatDate(claim.saidAt)}</p>
+                {claim.checkStatus === "completed" && !flagged ? <p className="mt-1 text-xs text-emerald-800">Checked — no contradictions found</p> : null}
                 {flagged ? (
                   <div role="alert" className="mt-3 space-y-2 rounded-md border border-red-300 bg-red-100 p-3 text-sm text-red-900">
                     <p className="font-semibold">Contradicts {claim.contradictions.length === 1 ? "an earlier claim" : "earlier claims"}</p>

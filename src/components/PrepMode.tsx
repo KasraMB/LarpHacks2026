@@ -10,7 +10,7 @@ import { Button, EmptyState, ErrorMessage, Loading, StatusBadge } from "./ui";
 export function isInteractiveTarget(target: EventTarget | null, includeButtons: boolean) {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable) return true;
-  const tags = includeButtons ? ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"] : ["INPUT", "TEXTAREA", "SELECT"];
+  const tags = includeButtons ? ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A", "SUMMARY"] : ["INPUT", "TEXTAREA", "SELECT"];
   return tags.includes(target.tagName);
 }
 
@@ -86,7 +86,7 @@ export function PrepMode({ state, activeCard, answerRevealed, onRevealChange, on
           </div>
           <div className="flex justify-between gap-3">
             <Button variant="secondary" disabled={index <= 0} onClick={() => void onPrevious()}>Previous</Button>
-            <Button disabled={index < 0 || index >= cards.length - 1} onClick={() => void onNext()}>Next</Button>
+            {index === cards.length - 1 && answerRevealed && deck ? <Link href={`/decks/${deck.id}/live`} className="inline-flex min-h-11 items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">Ready? Go live</Link> : <Button disabled={index < 0 || index >= cards.length - 1} onClick={() => void onNext()}>Next</Button>}
           </div>
           <p className="text-xs text-slate-500">Shortcuts: left and right arrows to move, space or enter to show the answer.</p>
         </>

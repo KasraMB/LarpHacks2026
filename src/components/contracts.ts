@@ -90,4 +90,5 @@ export type LiveModeProps = {
   onPrevious: () => Promise<void>;
   onNext: () => Promise<void>;
   onJumpToInterest: (interestId: string) => Promise<void>;
+  onJumpToType: (type: Card["type"]) => Promise<void>;
 };

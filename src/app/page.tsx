@@ -5,9 +5,8 @@ export default function HomePage() {
     <section className="space-y-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold">Alias</h1>
-        <p className="text-slate-600">
-          Keep a cover identity consistent. Track what you follow, who you talk to, and what you have told them,
-          then review flashcards before each chat.
+        <p className="max-w-prose text-slate-600">
+          Keep your cover identity consistent. Review what you told each person before your next conversation.
         </p>
       </div>
       <HomeController />

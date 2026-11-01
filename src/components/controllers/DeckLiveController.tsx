@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
+import type { Card } from "@/contracts";
 import { api } from "@/lib/api";
 import { isTerminal, listAll, usePolling, useResource } from "@/lib/use-resource";
 import { LiveMode } from "@/components/LiveMode";
+import { DeckEvidenceProvider } from "@/components/DeckEvidence";
 import { sortDeck } from "./DeckPrepController";
 
 export function DeckLiveController({ deckId }: { deckId: string }) {
@@ -43,19 +45,28 @@ export function DeckLiveController({ deckId }: { deckId: string }) {
   );
 
   const error = resource.error ?? interests.error;
+  const onJumpToType = useCallback(async (type: Card["type"]) => {
+    const target = cards.findIndex((card) => card.type === type && (!activeInterestId || card.interestIds.includes(activeInterestId)));
+    if (target < 0) return;
+    setActiveIndex(target);
+    if (activeInterestId) setPinned({ cardId: cards[target].id, interestId: activeInterestId });
+  }, [cards, activeInterestId]);
 
   return (
-    <div className="space-y-4">
-      {deck ? <Link href={`/people/${deck.personId}`} className="text-sm text-blue-700 underline">Back to person</Link> : null}
-      <LiveMode
-        state={{ data: deck, loading: resource.loading || interests.loading, error }}
-        activeCard={activeCard}
-        topics={topics}
-        activeInterestId={activeInterestId}
-        onPrevious={onPrevious}
-        onNext={onNext}
-        onJumpToInterest={onJumpToInterest}
-      />
-    </div>
+    <DeckEvidenceProvider deck={deck}>
+      <div className="space-y-4">
+        {deck ? <Link href={`/people/${deck.personId}`} className="text-sm text-blue-700 underline">Back to person</Link> : null}
+        <LiveMode
+          state={{ data: deck, loading: resource.loading || interests.loading, error }}
+          activeCard={activeCard}
+          topics={topics}
+          activeInterestId={activeInterestId}
+          onPrevious={onPrevious}
+          onNext={onNext}
+          onJumpToInterest={onJumpToInterest}
+          onJumpToType={onJumpToType}
+        />
+      </div>
+    </DeckEvidenceProvider>
   );
 }

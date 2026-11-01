@@ -52,10 +52,11 @@ export function ConversationForm({ personId, onSubmit, loading, error }: Convers
       <Card>
         <form onSubmit={submit} className="space-y-3">
           <h3 id="conversation-form-title" className="text-base font-medium">Record a conversation</h3>
+          <p className="text-sm text-slate-600">Save what you discussed and any claims you made. The most recent conversation sets the research cutoff for your next deck; an older entry keeps the current cutoff.</p>
           <TextField label="When it happened" type="datetime-local" value={happenedAt} onChange={(e) => setHappenedAt(e.target.value)} required />
           <TextArea label="Conversation notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           <fieldset className="space-y-3">
-            <legend className="text-sm font-medium">Claims you made</legend>
+            <legend className="text-sm font-medium">What you said in this conversation (optional)</legend>
             {claims.length === 0 ? <p className="text-sm text-slate-500">No claims added.</p> : null}
             {claims.map((claim, index) => (
               <div key={claim.key} className="space-y-2 rounded-md border border-slate-200 p-3">

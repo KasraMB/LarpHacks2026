@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { Deck } from "@/contracts";
 import { api } from "@/lib/api";
 import { isTerminal, usePolling, useResource } from "@/lib/use-resource";
+import { DeckEvidenceProvider } from "@/components/DeckEvidence";
 import { PrepMode } from "@/components/PrepMode";
 
 export function sortDeck(deck: Deck | null): Deck | null {
@@ -33,16 +34,18 @@ export function DeckPrepController({ deckId }: { deckId: string }) {
   const onNext = useCallback(async () => { setRevealedFor(null); setActiveIndex(Math.min(index + 1, cards.length - 1)); }, [index, cards.length]);
 
   return (
-    <div className="space-y-4">
-      {deck ? <Link href={`/people/${deck.personId}`} className="text-sm text-blue-700 underline">Back to person</Link> : null}
-      <PrepMode
-        state={{ data: deck, loading: resource.loading, error: resource.error }}
-        activeCard={activeCard}
-        answerRevealed={answerRevealed}
-        onRevealChange={onRevealChange}
-        onPrevious={onPrevious}
-        onNext={onNext}
-      />
-    </div>
+    <DeckEvidenceProvider deck={deck}>
+      <div className="space-y-4">
+        {deck ? <Link href={`/people/${deck.personId}`} className="text-sm text-blue-700 underline">Back to person</Link> : null}
+        <PrepMode
+          state={{ data: deck, loading: resource.loading, error: resource.error }}
+          activeCard={activeCard}
+          answerRevealed={answerRevealed}
+          onRevealChange={onRevealChange}
+          onPrevious={onPrevious}
+          onNext={onNext}
+        />
+      </div>
+    </DeckEvidenceProvider>
   );
 }
