@@ -1,8 +1,7 @@
-import { apiFailure } from "@/server/http";
+import { handleResearchCron } from "@/server/cron";
+import { getRuntime } from "@/server/service";
 
 export const runtime = "nodejs";
-// Deliberately unavailable until authorization AND scheduling are implemented together.
-// Future request: POST with Authorization: Bearer <CRON_SECRET>; no body.
-export async function POST() {
-  return apiFailure("NOT_IMPLEMENTED", "Cron authorization and research scheduling are not implemented.", 501);
+export async function POST(request: Request) {
+  return handleResearchCron(request, process.env.CRON_SECRET, () => getRuntime().deps.scheduler);
 }

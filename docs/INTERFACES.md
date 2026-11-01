@@ -1,6 +1,6 @@
 # Shared interfaces and working agreement
 
-This is a contract scaffold. Forms, business rules, database access, AI calls, research fetching, job execution, and deployment are not implemented. Working plumbing is limited to schema validation and typed HTTP transport. Business operations return HTTP 501 until their service stub is replaced.
+Backend services, Postgres persistence, provider adapters, durable workers, and cron authorization are implemented against these contracts. UI pages and controlled components remain placeholders for Carson. Deployment and live provider/database verification require Render configuration; see the README.
 
 ## Ownership
 
@@ -70,7 +70,7 @@ Failure: `{ ok: false, error: { code, message, retryable } }`.
 
 The client throws `AliasApiError` for error envelopes and a validation error for malformed responses. Controllers map failures to the UI's `ApiError`. Use `ServiceError` for expected backend failures. Output schema failures return HTTP 500 without leaking details.
 
-`POST /api/cron/research` is separate: future input is `Authorization: Bearer <CRON_SECRET>`, no body; success data is `{ runIds: string[] }`. It currently always returns 501. Implement authorization and scheduling together.
+`POST /api/cron/research` is separate: `Authorization: Bearer <CRON_SECRET>`, no body; success data is `{ runIds: string[] }`. Missing server secret returns 503 and invalid authorization returns 401 before runtime construction. The scheduler queues durable runs; a separate worker executes them.
 
 ## Behavior agreements for implementation
 
@@ -98,6 +98,7 @@ The client throws `AliasApiError` for error envelopes and a validation error for
 - Lifecycle: `queued → running → completed | failed`. Partial success can complete with `sourceErrors`. Overall failure uses `failure`.
 - UI polls `getResearchRun` until terminal, then refreshes facts. Controllers own polling and cancellation.
 - Deduplicate article URLs per topic and fact text per source/topic; `upsertFacts` must be retry-safe.
+- `upsertFacts` returns newly inserted rows. `factCount` counts inserts observed across attempts of that run; existing facts are not reassigned to later runs. Discovery is sampled across sources, with at most six unique articles processed per attempt.
 - `since` filters publication date, falling back to retrieval date, strictly later than cutoff. `null` includes all available research. Research never changes the conversation cutoff.
 
 ### Decks and cards
@@ -106,6 +107,7 @@ The client throws `AliasApiError` for error envelopes and a validation error for
 - Decks snapshot the person, selected claims/facts, and cutoff. Editing data does not mutate saved decks.
 - `force: false` may reuse a matching deck. `true` requests a fresh snapshot, but an identical active build is still reused to prevent duplicate work.
 - Cache fingerprints include identity/person/interest content, claim content/check results, facts, cutoff, model, and prompt version. Persist enough input content to reproduce that snapshot; workers must not silently include newer data.
+- Workers reject snapshots whose prompt version or configured model is no longer supported. Rebuild after changing model/prompt configuration. Cards are sorted by `position` before saving.
 - Fixed types: `back_story`, `what_changed`, `if_she_asks`, `dont_say`.
 - Evidence is a claim reference, or a fact reference with source URL. Do not fabricate news sources for personal claims.
 - `interestIds` drive topic filters; `position` drives order. Card `deckId` must match the parent.
@@ -129,7 +131,7 @@ Choose explicitly in a controller. No automatic production fallback to mocks. St
 
 ## Database handoff
 
-`src/server/db/schema.ts` is deliberately empty. Define physical tables behind `Repository` while preserving DTOs.
+`src/server/db/schema.ts` defines the physical schema. `createPostgresRepository` implements `Repository`; the SQL migration runner is authoritative. DTO payloads are stored alongside indexed relationship/status fields. See `src/server/db/README.md` before generating migrations.
 
 | Table | Keys / relationships |
 | --- | --- |
@@ -143,15 +145,14 @@ Choose explicitly in a controller. No automatic production fallback to mocks. St
 | research_facts | Interest/run FKs, text/kind, source metadata, dedup key |
 | decks | Person FK, lifecycle, cutoff, input snapshot/fingerprint, warnings |
 | cards | Deck FK, type/order, prompt/answer, topic links, evidence |
-| jobs (if DB-backed) | Job kind/entity ID, retry/lease state |
+| jobs | Job kind/entity ID, retry/lease state |
 
-Backend owns indexes, constraints, queue durability, and transaction implementation. Map ORM rows to DTOs, including Date → ISO strings. Do not generate migrations until the schema exists.
+Backend owns indexes, constraints, queue durability, and transactions. DTO timestamps remain ISO strings. Queue triggers insert entities and jobs in the same transaction. Job claims use row locks, leases, up to three attempts, and bounded backoff. Expired final leases mark the entity failed; superseded research/deck retries are cancelled when newer work owns the active slot.
 
-## First parallel work
+## Remaining integration
 
-1. A builds components/controllers against fixtures; B builds identity/interests/people repositories and use cases.
-2. Replace stubs individually in `src/server/service.ts`. Adding an implementation should not require changing the dispatcher or client.
-3. Build claims/conversations, then research/deck workers through the ports. Triggers must enqueue durable work before reporting queued status.
-4. Connect the real client and run typecheck, contract tests, and production build together.
+1. Carson connects pages/controllers to `createApiClient`, including pagination and job polling.
+2. Configure Render secrets and model, deploy migrations/web/worker/cron, and verify live persistence/provider behavior.
+3. Run the full UI workflow and rehearse the deployed demo. Mocked backend checks do not replace that integration check.
 
 AI debrief is unspecified in `alias.md`; define behavior together before adding a contract.
