@@ -54,6 +54,7 @@ export function ResearchController({ interestId }: { interestId: string }) {
       <header className="space-y-1">
         <Link href="/interests" className="text-sm underline">All interests</Link>
         <h1 className="text-2xl font-semibold">{interest.name}</h1>
+        <p className="max-w-prose text-sm text-slate-600">Alias finds sources automatically from this topic using news search, Hacker News, Reddit and Wikipedia. Custom feeds, if added, are extra sources.</p>
         {interest.searchTerms.length > 0 ? (
           <p className="text-sm text-slate-600">Searching for: {interest.searchTerms.join(", ")}</p>
         ) : null}

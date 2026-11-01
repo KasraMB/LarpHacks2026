@@ -34,7 +34,7 @@ export const conversationInputSchema = z.object({
 export const conversationSchema = conversationInputSchema.omit({ claims: true }).extend({
   id: idSchema, personId: idSchema, createdAt: timestampSchema,
 });
-export const sourceKindSchema = z.enum(["rss", "google_news", "hacker_news", "reddit", "wikipedia"]);
+export const sourceKindSchema = z.enum(["rss", "google_news", "hacker_news", "reddit", "wikipedia", "composio"]);
 export const sourceSchema = z.object({
   url: z.url(), title: text, kind: sourceKindSchema, publishedAt: timestampSchema.nullable(), retrievedAt: timestampSchema,
 });

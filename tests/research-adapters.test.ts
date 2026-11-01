@@ -38,6 +38,30 @@ test("Google News, HN, Reddit, and Wikipedia discovery adapters parse their publ
   assert.equal((await discover("wikipedia"))[0]?.url, "https://en.wikipedia.org/wiki/Toronto_Raptors");
 });
 
+test("C++ finds sources with only a topic name and preserves literal plus signs", async () => {
+  const topic: Interest = { ...interest, name: "C++", searchTerms: [], feedUrls: [] };
+  const requests: URL[] = [];
+  const fetchImpl = async (input: RequestInfo | URL) => {
+    const url = new URL(String(input));
+    requests.push(url);
+    if (url.hostname === "news.google.com") return new Response(feed(item("https://example.com/cpp-news")));
+    if (url.hostname === "hn.algolia.com") return new Response(JSON.stringify({ hits: [{ title: "C++ news", url: "https://example.com/cpp-hn" }] }));
+    if (url.hostname === "www.reddit.com") return new Response(feed(item("https://www.reddit.com/r/cpp/comments/abc/news/")));
+    if (url.hostname === "en.wikipedia.org") return new Response(JSON.stringify({ query: { search: [{ title: "C++" }] } }));
+    throw new Error(`Unexpected source: ${url}`);
+  };
+  const sources = createDiscoverySources({ fetchImpl: fetchImpl as typeof fetch, lookupImpl: publicLookup });
+  for (const source of sources.filter(source => source.kind !== "rss")) {
+    assert.ok((await source.discover(topic)).length > 0, `${source.kind} discovers without custom feeds`);
+  }
+  assert.equal(requests.length, 4);
+  for (const url of requests) {
+    const query = url.searchParams.get("q") ?? url.searchParams.get("query") ?? url.searchParams.get("srsearch");
+    assert.equal(query, "C++");
+    assert.match(url.search, /C%2B%2B/);
+  }
+});
+
 test("Reddit JSON fallback extracts public posts", async () => {
   const fetchImpl = async (input: RequestInfo | URL) => {
     if (String(input).endsWith("search.rss?q=NBA%20OR%20Toronto%20Raptors&sort=new")) return new Response("not rss");

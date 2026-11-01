@@ -2,6 +2,7 @@ import Parser from "rss-parser";
 import type { Interest } from "@/contracts";
 import type { DiscoveredArticle, DiscoverySource } from "../ports";
 import { boundedFetch, configFromEnvironment, validatePublicUrl, type FetchOptions } from "./safe-fetch";
+import { createComposioDiscoverySource } from "./composio";
 
 const packs: Record<string, string[]> = {
   nba: ["https://www.espn.com/espn/rss/nba/news"], basketball: ["https://www.espn.com/espn/rss/nba/news"],
@@ -10,7 +11,7 @@ const packs: Record<string, string[]> = {
 };
 const parser = new Parser();
 
-export interface DiscoveryOptions extends FetchOptions { now?: () => Date }
+export interface DiscoveryOptions extends FetchOptions { now?: () => Date; composioApiKey?: string | null }
 
 export function createDiscoverySources(options: DiscoveryOptions = {}): DiscoverySource[] {
   const fetchOptions = { ...configFromEnvironment(), ...options };
@@ -68,7 +69,9 @@ export function createDiscoverySources(options: DiscoveryOptions = {}): Discover
     const payload = JSON.parse(text) as { query?: { search?: Array<{ title?: string; pageid?: number }> } };
     return dedupe((payload.query?.search ?? []).map(hit => toArticle(hit.title ? `https://en.wikipedia.org/wiki/${encodeURIComponent(hit.title.replace(/ /g, "_"))}` : "", hit.title, null, "wikipedia", now)).filter(isArticle));
   }};
-  return [rss("rss"), rss("google_news"), hackerNews, rss("reddit"), wikipedia];
+  const key = options.composioApiKey === undefined ? process.env.COMPOSIO_API_KEY : options.composioApiKey;
+  const composio = key?.trim() ? [createComposioDiscoverySource({ apiKey: key, fetchImpl: options.fetchImpl })] : [];
+  return [...composio, rss("rss"), rss("google_news"), hackerNews, rss("reddit"), wikipedia];
 }
 
 function queryFor(interest: Interest): string { return [interest.name, ...interest.searchTerms].filter(Boolean).join(" OR ").slice(0, 300); }

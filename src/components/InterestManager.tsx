@@ -46,9 +46,12 @@ function InterestForm({
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-      <TextArea label="Search terms" hint="Separate with commas or new lines." value={terms} onChange={(e) => setTerms(e.target.value)} />
-      <TextArea label="Feed URLs" hint="One URL per line." value={feeds} onChange={(e) => setFeeds(e.target.value)} />
+      <TextField label="Topic name" hint="This is all Alias needs to find sources automatically." value={name} onChange={(e) => setName(e.target.value)} required />
+      <TextArea label="Search terms (optional)" hint="Guide discovery with extra terms, separated by commas or new lines." value={terms} onChange={(e) => setTerms(e.target.value)} />
+      <details open={initial?.feedUrls.length ? true : undefined} className="space-y-2">
+        <summary className="cursor-pointer text-sm font-medium">Add custom feeds (optional)</summary>
+        <TextArea label="RSS or Atom feed URLs" hint="Extra sources alongside automatic discovery. Use feed URLs rather than website homepages, one per line." value={feeds} onChange={(e) => setFeeds(e.target.value)} />
+      </details>
       <ErrorMessage error={error} />
       <div className="flex gap-2">
         <Button type="submit" busy={busy}>{submitLabel}</Button>
@@ -109,9 +112,11 @@ function InterestRow({
         )}
       </div>
       <p className="text-sm text-slate-600">
-        Search terms: {interest.searchTerms.length ? interest.searchTerms.join(", ") : "none"}
+        Sources are found automatically from {interest.name}.
       </p>
-      <p className="text-sm text-slate-600">Feeds: {interest.feedUrls.length ? interest.feedUrls.join(", ") : "none"}</p>
+      {interest.searchTerms.length ? <p className="break-words text-sm text-slate-600">Extra search terms: {interest.searchTerms.join(", ")}</p> : null}
+      {interest.feedUrls.length ? <p className="break-words text-sm text-slate-600">Additional custom feeds: {interest.feedUrls.join(", ")}</p> : null}
+      <Link href={`/interests/${interest.id}`} className="inline-flex min-h-11 items-center text-sm font-medium underline">View research / run now</Link>
       <ErrorMessage error={error} />
     </Card>
   );
