@@ -1,6 +1,6 @@
 # Alias build checklist
 
-Suggested two-person split: **A owns the interface**, **B owns data, research, and AI**. Swap the labels to fit your strengths. Work together on setup, shared types, integration, and the demo.
+Suggested two-person split: **A (Carson) owns the interface**, **B owns data, research, and AI**. Swap the labels to fit your strengths. Work together on setup, shared types, integration, and the demo.
 
 This checklist translates `alias.md` into build tasks. Start with one shared cover identity for the demo; accounts and multiple users are outside the current plan.
 
@@ -9,8 +9,8 @@ This checklist translates `alias.md` into build tasks. Start with one shared cov
 - [ ] Create the Next.js App Router project with TypeScript and Tailwind.
 - [ ] Install and configure Drizzle, Zod, the OpenAI client, and research dependencies.
 - [ ] Add `.env.example` with `DATABASE_URL`, `FEATHERLESS_API_KEY`, and `CRON_SECRET`; keep real secrets out of Git.
-- [ ] Agree on shared Zod schemas and API request/response shapes for identities, interests, people, claims, research, decks, and cards.
-- [ ] Agree on how a person's interests are linked and how their last-conversation timestamp is recorded.
+- [ ] Agree on shared Zod schemas and API request/response shapes for identities, interests, people, claims, research, decks, and cards. **[Carson]**
+- [ ] Agree on how a person's interests are linked and how their last-conversation timestamp is recorded. **[Carson]**
 - [ ] Create sample API responses so A can build screens while B builds the services.
 - [ ] Document local setup and commands in the README.
 
@@ -35,12 +35,12 @@ The original table list needs additional storage for the identity, research fact
 
 ### A: screens
 
-- [ ] Build the app shell and navigation.
-- [ ] Build the cover identity setup/edit form.
-- [ ] Build interest creation, editing, and removal.
-- [ ] Build the people list and create/edit forms.
-- [ ] Build a person's detail page with interests, last conversation, claims, and a Build my deck button.
-- [ ] Add loading, empty, validation, and error states.
+- [ ] Build the app shell and navigation. **[Carson]**
+- [ ] Build the cover identity setup/edit form. **[Carson]**
+- [ ] Build interest creation, editing, and removal. **[Carson]**
+- [ ] Build the people list and create/edit forms. **[Carson]**
+- [ ] Build a person's detail page with interests, last conversation, claims, and a Build my deck button. **[Carson]**
+- [ ] Add loading, empty, validation, and error states. **[Carson]**
 
 ### B: services
 
@@ -54,10 +54,10 @@ Done when a user can create a cover, add a topic and a person, and reload withou
 
 ### A: screens
 
-- [ ] Add a timestamped claims ledger to each person's page.
-- [ ] Build the post-call form for logging new claims and recording when the conversation happened.
-- [ ] Display contradiction warnings with the conflicting earlier claim and an explanation.
-- [ ] Keep claim entry usable if the AI check fails; show the check status.
+- [ ] Add a timestamped claims ledger to each person's page. **[Carson]**
+- [ ] Build the post-call form for logging new claims and recording when the conversation happened. **[Carson]**
+- [ ] Display contradiction warnings with the conflicting earlier claim and an explanation. **[Carson]**
+- [ ] Keep claim entry usable if the AI check fails; show the check status. **[Carson]**
 
 ### B: services
 
@@ -87,10 +87,10 @@ Done when one topic produces persisted, source-linked facts and a failed source 
 
 ## 6. Research timeline — A
 
-- [ ] Build the topic research timeline with dates and source links.
-- [ ] Add a Run now button wired to the research operation.
-- [ ] Show running, completed, failed, and no-results states.
-- [ ] Refresh the timeline when a run completes.
+- [ ] Build the topic research timeline with dates and source links. **[Carson]**
+- [ ] Add a Run now button wired to the research operation. **[Carson]**
+- [ ] Show running, completed, failed, and no-results states. **[Carson]**
+- [ ] Refresh the timeline when a run completes. **[Carson]**
 
 Depends on section 5's API contract; build against sample responses first.
 
@@ -108,17 +108,17 @@ Done when Dana's saved claims and research produce a saved deck covering all fou
 
 ## 8. Flashcard experience — A
 
-- [ ] Wire Build my deck to generation and show progress/errors.
-- [ ] Build cards with readable type labels, topic tags, and evidence links.
-- [ ] Build prep mode with question/answer reveal and next/previous controls.
-- [ ] Build a compact live mode suitable beside a call window.
-- [ ] Add keyboard shortcuts and topic jump/filter controls.
-- [ ] Make controls keyboard accessible and layouts usable on smaller screens.
-- [ ] Connect the post-call claim form back into the workflow.
+- [ ] Wire Build my deck to generation and show progress/errors. **[Carson]**
+- [ ] Build cards with readable type labels, topic tags, and evidence links. **[Carson]**
+- [ ] Build prep mode with question/answer reveal and next/previous controls. **[Carson]**
+- [ ] Build a compact live mode suitable beside a call window. **[Carson]**
+- [ ] Add keyboard shortcuts and topic jump/filter controls. **[Carson]**
+- [ ] Make controls keyboard accessible and layouts usable on smaller screens. **[Carson]**
+- [ ] Connect the post-call claim form back into the workflow. **[Carson]**
 
 Depends on section 7's API contract; build the card views against sample decks first.
 
-## 9. Deployment — B, with A checking the deployed UI
+## 9. Deployment — B, with A (Carson) checking the deployed UI
 
 - [ ] Add a `render.yaml` Blueprint for the web service, Postgres, and a daily cron job.
 - [ ] Configure secrets, production build/start commands, and database migrations.
@@ -131,11 +131,11 @@ Depends on section 7's API contract; build the card views against sample decks f
 - [ ] Seed a demo cover identity, Dana, interests, past claims, and a week of dated research.
 - [ ] Include a known contradiction and a Don't say card.
 - [ ] Keep cached research and a saved deck available if live services fail.
-- [ ] Test the complete path: setup → research → claim → deck → prep/live → new claim.
+- [ ] Test the complete path: setup → research → claim → deck → prep/live → new claim. **[Carson]**
 - [ ] Check that a research update does not move the last-conversation timestamp.
 - [ ] Check that research dates and person-specific claims select the right deck content.
 - [ ] Verify invalid AI output, missing research, source failures, and repeated research runs are handled.
-- [ ] Rehearse the two-minute demo from `alias.md` on the deployed app.
+- [ ] Rehearse the two-minute demo from `alias.md` on the deployed app. **[Carson]**
 
 ## Suggested order
 
