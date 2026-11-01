@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { ResearchTimeline } from "@/components/ResearchTimeline";
-import { BackLink, ErrorMessage, Loading } from "@/components/ui";
+import { BackLink, ErrorMessage, formatCoordDate, Loading } from "@/components/ui";
 import { api } from "@/lib/api";
 import { isTerminal, listAll, usePolling, useResource } from "@/lib/use-resource";
 
 export function ResearchController({ interestId }: { interestId: string }) {
-  const interests = useResource(`interests:${interestId}`, () => listAll((cursor) => api.listInterests({ cursor, limit: 100 })));
+  const interests = useResource(`interests:${interestId}`, () =>
+    listAll((cursor) => api.listInterests({ cursor, limit: 100 })),
+  );
   const research = useResource(`research:${interestId}`, async () => {
     const [runs, facts] = await Promise.all([
       listAll((cursor) => api.listResearchRuns({ interestId, cursor, limit: 100 })),
@@ -35,12 +37,12 @@ export function ResearchController({ interestId }: { interestId: string }) {
 
   const interest = interests.data?.find((i) => i.id === interestId) ?? null;
 
-  if (interests.loading && !interests.data) return <Loading />;
+  if (interests.loading && !interests.data) return <Loading label="Loading topic sector..." />;
   if (interests.error) return <ErrorMessage error={interests.error} onRetry={interests.reload} />;
   if (!interest) {
     return (
       <div className="space-y-3">
-        <p role="alert" className="rounded-lg bg-neg-bg px-4 py-3 text-sm text-neg-ink">
+        <p role="alert" className="rounded-sm border border-neg-line bg-neg-bg px-4 py-3 text-sm text-neg-ink">
           NOT_FOUND: no interest with this id exists.
         </p>
         <BackLink href="/interests">Back to interests</BackLink>
@@ -50,16 +52,26 @@ export function ResearchController({ interestId }: { interestId: string }) {
 
   return (
     <div className="space-y-8">
-      <header className="space-y-3">
+      <header className="space-y-3 border-b border-line pb-5">
         <BackLink href="/interests">All interests</BackLink>
-        <h1 className="break-words text-[28px] font-semibold leading-tight tracking-[-0.025em] sm:text-[32px]">{interest.name}</h1>
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
+          <h1 className="break-words text-[28px] font-bold leading-tight tracking-[-0.03em] sm:text-[34px]">
+            {interest.name}
+          </h1>
+          <span className="serial-tag">UPDATED: {formatCoordDate(interest.updatedAt)}</span>
+        </div>
         {interest.searchTerms.length > 0 ? (
-          <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
-            <span className="mr-1">Searching for:</span>
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-sm text-muted">
+            <span className="mr-1 font-mono text-xs font-semibold text-muted">SEARCH TERMS:</span>
             {interest.searchTerms.map((term) => (
-              <span key={term} className="rounded bg-raised px-2 py-0.5 text-[13px] text-ink">{term}</span>
+              <span
+                key={term}
+                className="rounded-sm border border-line bg-surface px-2 py-0.5 font-mono text-xs text-ink"
+              >
+                {term}
+              </span>
             ))}
-          </p>
+          </div>
         ) : null}
       </header>
       {pollError ? (

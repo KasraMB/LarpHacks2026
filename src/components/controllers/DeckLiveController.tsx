@@ -39,10 +39,15 @@ export function DeckLiveController({ deckId }: { deckId: string }) {
 
   // A jump pins the chosen topic only while its target card is showing.
   const activeInterestId =
-    pinned && activeCard && pinned.cardId === activeCard.id ? pinned.interestId : (activeCard?.interestIds[0] ?? null);
+    pinned && activeCard && pinned.cardId === activeCard.id
+      ? pinned.interestId
+      : (activeCard?.interestIds[0] ?? null);
 
   const onPrevious = useCallback(async () => setActiveIndex(Math.max(index - 1, 0)), [index]);
-  const onNext = useCallback(async () => setActiveIndex(Math.min(index + 1, cards.length - 1)), [index, cards.length]);
+  const onNext = useCallback(
+    async () => setActiveIndex(Math.min(index + 1, cards.length - 1)),
+    [index, cards.length],
+  );
   const onJumpToInterest = useCallback(
     async (interestId: string) => {
       const target = cards.findIndex((c) => c.interestIds.includes(interestId));
@@ -56,27 +61,31 @@ export function DeckLiveController({ deckId }: { deckId: string }) {
   const error = resource.error ?? person.error ?? interests.error;
 
   return (
-    <div data-live-route className="fixed inset-0 z-50 overflow-y-auto bg-night text-white">
+    <div data-live-route className="fixed inset-0 z-50 overflow-y-auto bg-night text-ground">
       <div className="mx-auto flex min-h-full max-w-2xl flex-col">
-      {deck ? (
-        <Link
-          href={`/people/${deck.personId}`}
-          className="mx-4 mt-1 inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-sm text-night-muted hover:text-white focus-visible:outline-white sm:mx-5"
-        >
-          <ArrowIcon direction="left" /> Back to person
-        </Link>
-      ) : null}
-      <div className="flex flex-1 flex-col">
-      <LiveMode
-        state={{ data: deck, loading: resource.loading || person.loading || interests.loading, error }}
-        activeCard={activeCard}
-        topics={topics}
-        activeInterestId={activeInterestId}
-        onPrevious={onPrevious}
-        onNext={onNext}
-        onJumpToInterest={onJumpToInterest}
-      />
-      </div>
+        {deck ? (
+          <Link
+            href={`/people/${deck.personId}`}
+            className="mx-4 mt-1.5 inline-flex min-h-10 w-fit items-center gap-1.5 rounded-sm font-mono text-xs font-semibold text-night-muted hover:text-ground focus-visible:outline-ground sm:mx-5"
+          >
+            <ArrowIcon direction="left" /> Back to person
+          </Link>
+        ) : null}
+        <div className="flex flex-1 flex-col">
+          <LiveMode
+            state={{
+              data: deck,
+              loading: resource.loading || person.loading || interests.loading,
+              error,
+            }}
+            activeCard={activeCard}
+            topics={topics}
+            activeInterestId={activeInterestId}
+            onPrevious={onPrevious}
+            onNext={onNext}
+            onJumpToInterest={onJumpToInterest}
+          />
+        </div>
       </div>
     </div>
   );
