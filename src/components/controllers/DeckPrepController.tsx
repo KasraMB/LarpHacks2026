@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { BackLink } from "@/components/ui";
 import { useCallback, useMemo, useState } from "react";
 import type { Deck } from "@/contracts";
 import { api } from "@/lib/api";
@@ -41,7 +41,7 @@ export function DeckPrepController({ deckId }: { deckId: string }) {
 
   return (
     <div className="space-y-4">
-      {deck ? <Link href={`/people/${deck.personId}`} className="text-sm text-blue-700 underline">Back to person</Link> : null}
+      {deck ? <BackLink href={`/people/${deck.personId}`}>Back to person</BackLink> : null}
       <PrepMode
         state={{ data: deck, loading: resource.loading, error: resource.error }}
         activeCard={activeCard}

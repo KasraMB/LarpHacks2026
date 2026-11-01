@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import type { ApiError, Person } from "@/contracts";
 import type { PersonDetailProps } from "./contracts";
-import { Button, Card, ErrorMessage, formatDate, Loading, TextArea, TextField } from "./ui";
+import { Button, ErrorMessage, formatDate, Loading, TextArea, TextField } from "./ui";
 import { toApiError } from "@/lib/use-resource";
 
 export function PersonDetail({ state, onUpdate, onDelete }: PersonDetailProps) {
@@ -11,7 +11,7 @@ export function PersonDetail({ state, onUpdate, onDelete }: PersonDetailProps) {
   if (!person) {
     return (
       <section aria-labelledby="person-detail-title" className="space-y-3">
-        <h2 id="person-detail-title" className="text-xl font-semibold">Person</h2>
+        <h2 id="person-detail-title" className="text-[28px] font-semibold tracking-[-0.025em]">Person</h2>
         {state.loading ? <Loading label="Loading person..." /> : null}
         <ErrorMessage error={state.error} />
       </section>
@@ -61,33 +61,48 @@ function PersonForm({ person, loadError, onUpdate, onDelete }: {
     }
   }
 
+  const initials = person.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+
   return (
     <section aria-labelledby="person-detail-title" className="space-y-4">
-      <h2 id="person-detail-title" className="text-xl font-semibold">{person.name}</h2>
-      <p className="text-sm text-slate-500">Last conversation: {formatDate(person.lastConversationAt)}</p>
-      <Card>
-        <form onSubmit={save} className="space-y-3">
-          <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-          <TextArea label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-          <div className="flex items-center gap-3">
-            <Button type="submit" busy={saving} disabled={!name.trim()}>Save changes</Button>
-            {saved ? <span role="status" className="text-sm text-emerald-700">Saved.</span> : null}
+        <div className="flex items-start gap-4">
+          <span aria-hidden="true" className="grid size-14 shrink-0 place-items-center rounded-lg bg-ink text-lg font-semibold tracking-[-0.02em] text-white sm:size-16 sm:text-xl">
+            {initials || "?"}
+          </span>
+          <div className="min-w-0 space-y-1">
+            <h2 id="person-detail-title" className="break-words text-[30px] font-semibold leading-[1.05] tracking-[-0.03em] sm:text-[40px]">{person.name}</h2>
+            <p className="tnum text-sm text-muted">Last conversation: {formatDate(person.lastConversationAt)}</p>
           </div>
-        </form>
-      </Card>
-      <ErrorMessage error={error} />
-      <ErrorMessage error={loadError} />
-      <div className="flex items-center gap-2">
-        {confirming ? (
-          <>
-            <span className="text-sm">Delete {person.name} and their history?</span>
-            <Button variant="danger" busy={deleting} onClick={remove}>Confirm delete</Button>
-            <Button variant="secondary" onClick={() => setConfirming(false)}>Cancel</Button>
-          </>
-        ) : (
-          <Button variant="danger" onClick={() => setConfirming(true)}>Delete person</Button>
-        )}
-      </div>
+        </div>
+        {person.notes ? <p className="max-w-xl whitespace-pre-line text-[15px] leading-relaxed">{person.notes}</p> : null}
+        <ErrorMessage error={loadError} />
+        <div className="flex flex-wrap items-start gap-2">
+          <details className="group w-full max-w-xl">
+            <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md bg-raised px-3.5 text-sm font-medium hover:bg-[#dedcd6] sm:min-h-9 [&::-webkit-details-marker]:hidden">
+              Edit details
+            </summary>
+            <form onSubmit={save} className="mt-3 space-y-3 rounded-lg border border-line bg-surface p-4 sm:p-5">
+              <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
+              <TextArea label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+              <ErrorMessage error={error} />
+              <div className="flex flex-wrap items-center gap-3">
+                <Button type="submit" busy={saving} disabled={!name.trim()}>Save changes</Button>
+                {saved ? <span role="status" className="text-sm font-medium text-pos-ink">Saved.</span> : null}
+                <span className="ml-auto">
+                  {confirming ? (
+            <div role="group" aria-label="Confirm delete" className="flex flex-wrap items-center gap-2 rounded-md bg-neg-bg px-3 py-2 text-neg-ink">
+              <span className="text-sm font-medium">Delete {person.name} and their history?</span>
+              <Button variant="danger" busy={deleting} onClick={remove}>Confirm delete</Button>
+              <Button variant="secondary" onClick={() => setConfirming(false)} className="bg-transparent! text-neg-ink! hover:bg-white/60!">Cancel</Button>
+            </div>
+          ) : (
+            <Button variant="secondary" onClick={() => setConfirming(true)} className="text-neg-ink! hover:bg-neg-bg!">Delete person</Button>
+          )}
+                </span>
+              </div>
+            </form>
+          </details>
+        </div>
     </section>
   );
 }

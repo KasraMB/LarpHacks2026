@@ -1,9 +1,10 @@
 import { PeopleController } from "@/components/controllers/PeopleController";
+import { PageHeader } from "@/components/ui";
 
 export default function PeoplePage() {
   return (
-    <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">People</h1>
+    <section>
+      <PageHeader title="People">Everyone who knows you by your cover, and what you have told each of them.</PageHeader>
       <PeopleController />
     </section>
   );

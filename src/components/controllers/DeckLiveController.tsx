@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowIcon } from "@/components/ui";
 import { useCallback, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { isTerminal, listAll, usePolling, useResource } from "@/lib/use-resource";
@@ -55,8 +56,17 @@ export function DeckLiveController({ deckId }: { deckId: string }) {
   const error = resource.error ?? person.error ?? interests.error;
 
   return (
-    <div className="space-y-4">
-      {deck ? <Link href={`/people/${deck.personId}`} className="text-sm text-blue-700 underline">Back to person</Link> : null}
+    <div data-live-route className="fixed inset-0 z-50 overflow-y-auto bg-night text-white">
+      <div className="mx-auto flex min-h-full max-w-2xl flex-col">
+      {deck ? (
+        <Link
+          href={`/people/${deck.personId}`}
+          className="mx-4 mt-1 inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-sm text-night-muted hover:text-white focus-visible:outline-white sm:mx-5"
+        >
+          <ArrowIcon direction="left" /> Back to person
+        </Link>
+      ) : null}
+      <div className="flex flex-1 flex-col">
       <LiveMode
         state={{ data: deck, loading: resource.loading || person.loading || interests.loading, error }}
         activeCard={activeCard}
@@ -66,6 +76,8 @@ export function DeckLiveController({ deckId }: { deckId: string }) {
         onNext={onNext}
         onJumpToInterest={onJumpToInterest}
       />
+      </div>
+      </div>
     </div>
   );
 }

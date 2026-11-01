@@ -1,9 +1,12 @@
 import { IdentityController } from "@/components/controllers/IdentityController";
+import { PageHeader } from "@/components/ui";
 
 export default function IdentityPage() {
   return (
-    <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Cover identity</h1>
+    <section>
+      <PageHeader title="Cover identity">
+        The person you are when you talk to people. Every claim and flashcard is checked against this.
+      </PageHeader>
       <IdentityController />
     </section>
   );

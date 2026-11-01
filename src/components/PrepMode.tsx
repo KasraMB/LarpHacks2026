@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import type { PrepModeProps } from "./contracts";
 import { Flashcard } from "./Flashcard";
-import { Button, EmptyState, ErrorMessage, Loading, StatusBadge } from "./ui";
+import { ArrowIcon, Button, EmptyState, ErrorMessage, Loading, StatusBadge } from "./ui";
 
 /** True when a key event came from something that handles keys itself. */
 export function isInteractiveTarget(target: EventTarget | null, includeButtons: boolean) {
@@ -43,31 +43,41 @@ export function PrepMode({ state, activeCard, answerRevealed, onRevealChange, on
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  const progress = ready && index >= 0 ? ((index + 1) / cards.length) * 100 : 0;
+
   return (
-    <section className="space-y-4" aria-labelledby="prep-heading">
-      <div className="flex items-center justify-between gap-3">
-        <h1 id="prep-heading" className="text-2xl font-semibold">Prep</h1>
-        {deck ? <Link href={`/decks/${deck.id}/live`} className="text-sm text-blue-700 underline">Switch to live mode</Link> : null}
+    <section className="space-y-5" aria-labelledby="prep-heading">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 id="prep-heading" className="text-[28px] font-semibold leading-tight tracking-[-0.025em] sm:text-[32px]">Prep</h1>
+          <p className="mt-1 text-[15px] text-muted">Study before the call. Say each answer out loud before you reveal it.</p>
+        </div>
+        {deck ? (
+          <Link href={`/decks/${deck.id}/live`} className="group inline-flex h-11 items-center sm:h-9 gap-2 rounded-md bg-ink px-3.5 text-sm font-medium text-white transition-colors hover:bg-[#2a2a27]">
+            Switch to live mode
+            <ArrowIcon className="transition-transform duration-150 group-hover:translate-x-0.5" />
+          </Link>
+        ) : null}
       </div>
 
       <ErrorMessage error={error} />
       {loading && !deck ? <Loading label="Loading deck..." /> : null}
 
       {deck && isBuilding ? (
-        <div className="flex items-center gap-2" role="status">
+        <div className="flex items-center gap-3 rounded-lg bg-info-bg px-4 py-3.5 text-sm text-info-ink" role="status">
           <span>Building deck...</span>
           <StatusBadge status={deck.status} />
         </div>
       ) : null}
 
       {deck?.status === "failed" ? (
-        <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg bg-neg-bg px-4 py-3.5 text-sm text-neg-ink">
           <StatusBadge status="failed" /> {deck.failure?.message ?? "The deck could not be built."}
         </div>
       ) : null}
 
       {deck && deck.warnings.length > 0 ? (
-        <ul className="space-y-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" aria-label="Deck warnings">
+        <ul className="list-disc space-y-1 rounded-lg bg-warn-bg py-3 pl-8 pr-4 text-sm text-warn-ink" aria-label="Deck warnings">
           {deck.warnings.map((warning, i) => <li key={i}>{warning}</li>)}
         </ul>
       ) : null}
@@ -76,7 +86,12 @@ export function PrepMode({ state, activeCard, answerRevealed, onRevealChange, on
 
       {ready ? (
         <>
-          <p className="text-sm text-slate-600">Card {index + 1} of {cards.length}</p>
+          <div className="flex items-center gap-4">
+            <p className="tnum shrink-0 text-sm font-medium">Card {index + 1} of {cards.length}</p>
+            <span aria-hidden="true" className="h-1 flex-1 overflow-hidden rounded-full bg-raised">
+              <span className="block h-full rounded-full bg-ink transition-[width] duration-300" style={{ width: `${progress}%` }} />
+            </span>
+          </div>
           <div aria-live="polite">
             <Flashcard
               state={{ data: activeCard, loading: false, error: null }}
@@ -85,10 +100,18 @@ export function PrepMode({ state, activeCard, answerRevealed, onRevealChange, on
             />
           </div>
           <div className="flex justify-between gap-3">
-            <Button variant="secondary" disabled={index <= 0} onClick={() => void onPrevious()}>Previous</Button>
-            <Button disabled={index < 0 || index >= cards.length - 1} onClick={() => void onNext()}>Next</Button>
+            <Button variant="secondary" disabled={index <= 0} onClick={() => void onPrevious()} className="min-h-11 px-4">
+              <ArrowIcon direction="left" />
+              Previous
+            </Button>
+            <Button disabled={index < 0 || index >= cards.length - 1} onClick={() => void onNext()} className="min-h-11 px-4">
+              Next
+              <ArrowIcon />
+            </Button>
           </div>
-          <p className="text-xs text-slate-500">Shortcuts: left and right arrows to move, space or enter to show the answer.</p>
+          <p className="hidden text-[13px] text-muted sm:block">
+            Shortcuts: <kbd className="kbd">Left</kbd> and <kbd className="kbd">Right</kbd> arrows to move, <kbd className="kbd">Space</kbd> or <kbd className="kbd">Enter</kbd> to show the answer.
+          </p>
         </>
       ) : null}
     </section>

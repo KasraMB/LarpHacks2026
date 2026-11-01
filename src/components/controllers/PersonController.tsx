@@ -11,7 +11,7 @@ import { ClaimsLedger } from "../ClaimsLedger";
 import { ConversationForm } from "../ConversationForm";
 import { DeckBuilder } from "../DeckBuilder";
 import { PersonDetail } from "../PersonDetail";
-import { Button, Card, ErrorMessage, Loading } from "../ui";
+import { BackLink, Button, ErrorMessage, Loading } from "../ui";
 
 export function PersonController({ personId }: { personId: string }) {
   const router = useRouter();
@@ -39,10 +39,10 @@ export function PersonController({ personId }: { personId: string }) {
 
   if (person.error?.code === "NOT_FOUND") {
     return (
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">Person not found</h2>
-        <p className="text-sm text-slate-600">This person does not exist or was deleted.</p>
-        <Link href="/people" className="underline">Back to people</Link>
+      <section className="space-y-3 rounded-lg border border-dashed border-control px-6 py-10">
+        <h2 className="text-[24px] font-semibold tracking-[-0.02em]">Person not found</h2>
+        <p className="text-[15px] text-muted">This person does not exist or was deleted.</p>
+        <Link href="/people" className="link text-sm font-medium">Back to people</Link>
       </section>
     );
   }
@@ -55,7 +55,7 @@ export function PersonController({ personId }: { personId: string }) {
 
   return (
     <div className="space-y-8">
-      <Link href="/people" className="text-sm underline">All people</Link>
+      <BackLink href="/people">All people</BackLink>
       <PersonDetail
         state={{ data: person.data, loading: person.loading, error: person.error }}
         onUpdate={updatePerson}
@@ -65,19 +65,28 @@ export function PersonController({ personId }: { personId: string }) {
           return result;
         }}
       />
-      {person.data ? (
-        <InterestPicker
-          key={person.data.updatedAt}
-          interests={interests.data ?? []}
-          loading={interests.loading}
-          error={interests.error}
-          selected={person.data.interestIds}
-          onSave={(interestIds) => {
-            const p = person.data!;
-            return updatePerson({ id: p.id, data: { name: p.name, notes: p.notes, interestIds } });
-          }}
-        />
-      ) : null}
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)] lg:grid-rows-[auto_1fr] lg:gap-x-10">
+      <div className="lg:col-start-2 lg:row-start-1">
+      <DeckBuilder
+        personId={personId}
+        state={{ data: deck.data, loading: deck.loading, error: deck.error }}
+        onBuild={async (input) => {
+          const built = await api.buildDeck(input);
+          deck.setData(built);
+          return built;
+        }}
+      />
+      </div>
+      <div className="space-y-10 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+      <ClaimsLedger
+        personId={personId}
+        state={{ data: claims.data, loading: claims.loading, error: claims.error }}
+        onCreate={async (input) => {
+          const created = await api.createClaim(input);
+          claims.setData((list) => [...(list ?? []), created]);
+          return created;
+        }}
+      />
       <ConversationForm
         personId={personId}
         loading={convLoading}
@@ -101,24 +110,23 @@ export function PersonController({ personId }: { personId: string }) {
           }
         }}
       />
-      <ClaimsLedger
-        personId={personId}
-        state={{ data: claims.data, loading: claims.loading, error: claims.error }}
-        onCreate={async (input) => {
-          const created = await api.createClaim(input);
-          claims.setData((list) => [...(list ?? []), created]);
-          return created;
-        }}
-      />
-      <DeckBuilder
-        personId={personId}
-        state={{ data: deck.data, loading: deck.loading, error: deck.error }}
-        onBuild={async (input) => {
-          const built = await api.buildDeck(input);
-          deck.setData(built);
-          return built;
-        }}
-      />
+      </div>
+      <aside className="lg:col-start-2 lg:row-start-2" aria-label="Shared interests">
+      {person.data ? (
+        <InterestPicker
+          key={person.data.updatedAt}
+          interests={interests.data ?? []}
+          loading={interests.loading}
+          error={interests.error}
+          selected={person.data.interestIds}
+          onSave={(interestIds) => {
+            const p = person.data!;
+            return updatePerson({ id: p.id, data: { name: p.name, notes: p.notes, interestIds } });
+          }}
+        />
+      ) : null}
+      </aside>
+      </div>
     </div>
   );
 }
@@ -149,14 +157,14 @@ function InterestPicker({ interests, loading, error, selected, onSave }: {
 
   return (
     <section aria-labelledby="person-interests-title">
-      <Card className="space-y-3">
-        <fieldset className="space-y-2">
-          <legend id="person-interests-title" className="text-base font-medium">Shared interests</legend>
+      <div className="space-y-4 rounded-lg bg-raised/70 p-5">
+        <fieldset className="space-y-1">
+          <legend id="person-interests-title" className="mb-2 text-base font-semibold">Shared interests</legend>
           {loading && interests.length === 0 ? <Loading label="Loading interests..." /> : null}
-          {!loading && interests.length === 0 ? <p className="text-sm text-slate-500">No interests yet. Add some on the interests page.</p> : null}
+          {!loading && interests.length === 0 ? <p className="text-sm text-muted">No interests yet. Add some on the interests page.</p> : null}
           {interests.map((interest) => (
-            <label key={interest.id} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={draft.includes(interest.id)} onChange={() => toggle(interest.id)} />
+            <label key={interest.id} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 text-[15px] hover:bg-surface/70">
+              <input type="checkbox" className="size-4 accent-ink" checked={draft.includes(interest.id)} onChange={() => toggle(interest.id)} />
               {interest.name}
             </label>
           ))}
@@ -164,7 +172,7 @@ function InterestPicker({ interests, loading, error, selected, onSave }: {
         <ErrorMessage error={error} />
         <ErrorMessage error={saveError} />
         <Button busy={saving} onClick={save}>Save interests</Button>
-      </Card>
+      </div>
     </section>
   );
 }

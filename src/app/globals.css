@@ -1,12 +1,150 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: light;
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f8fafc;
-  color: #172033;
+@theme {
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --color-ground: #f3f2ef;
+  --color-surface: #ffffff;
+  --color-raised: #ebeae6;
+  --color-line: #e2e1dc;
+  --color-rule: #efeeea;
+  --color-control: #cfcdc6;
+  --color-ink: #0e0e0c;
+  --color-muted: #63625d;
+  --color-faint: #8a8984;
+  /* Darker than faint so field hints clear 4.5:1 on white. */
+  --color-placeholder: #706f69;
+  --color-signal: #1d5fbf;
+  --color-stamp: #b42318;
+
+  --color-pos-bg: #dcfae5;
+  --color-pos-ink: #04250e;
+  --color-neg-bg: #ffedea;
+  --color-neg-ink: #831c1e;
+  --color-warn-bg: #fffbeb;
+  --color-warn-line: #fde68a;
+  --color-warn-ink: #92400e;
+  --color-info-bg: #e8f0fc;
+  --color-info-ink: #133e7c;
+
+  --color-night: #0c0c0b;
+  --color-night-raised: #1a1a18;
+  --color-night-line: #2c2c29;
+  --color-night-muted: #b4b3ad;
 }
 
-body { margin: 0; min-height: 100vh; }
+@layer base {
+:root {
+  color-scheme: light;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-ground);
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
 a { color: inherit; }
-main { max-width: 64rem; margin: 0 auto; padding: 2rem 1.25rem; }
+
+::selection { background: var(--color-ink); color: var(--color-ground); }
+
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input, textarea, select, button { font: inherit; }
+}
+
+@layer components {
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* Underlined text link used for in-flow navigation. */
+.link {
+  text-decoration: underline;
+  text-decoration-color: var(--color-control);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color 120ms ease;
+}
+.link:hover { text-decoration-color: currentColor; }
+
+/* Redaction bar: the product mark and the loading placeholder share it. */
+.redact {
+  display: inline-block;
+  background: var(--color-ink);
+  border-radius: 2px;
+}
+
+.skeleton {
+  display: block;
+  background: var(--color-raised);
+  border-radius: 4px;
+}
+
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.card-in { animation: card-in 220ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+.kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0 0.4em;
+  border-radius: 4px;
+  background: var(--color-raised);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+}
+
+/* Live mode is a full-screen teleprompter; the app chrome stays out of it. */
+body:has([data-live-route]) > header { display: none; }
+
+/* Brief highlight when the ledger scrolls to a new contradiction. */
+@keyframes flag-in {
+  0% { box-shadow: 0 0 0 0 rgb(180 35 24 / 0); }
+  25% { box-shadow: 0 0 0 4px rgb(180 35 24 / 0.22); }
+  100% { box-shadow: 0 0 0 0 rgb(180 35 24 / 0); }
+}
+.flag-in { animation: flag-in 1600ms cubic-bezier(0.16, 1, 0.3, 1) 2; }
+
+@keyframes stamp-in {
+  from { opacity: 0; transform: rotate(-4deg) scale(1.35); }
+  to { opacity: 1; transform: rotate(-4deg) scale(1); }
+}
+.stamp {
+  transform: rotate(-4deg);
+  animation: stamp-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}

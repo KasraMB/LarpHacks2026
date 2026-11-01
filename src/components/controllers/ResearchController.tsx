@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { ResearchTimeline } from "@/components/ResearchTimeline";
-import { ErrorMessage, Loading } from "@/components/ui";
+import { BackLink, ErrorMessage, Loading } from "@/components/ui";
 import { api } from "@/lib/api";
 import { isTerminal, listAll, usePolling, useResource } from "@/lib/use-resource";
 
@@ -41,21 +40,26 @@ export function ResearchController({ interestId }: { interestId: string }) {
   if (!interest) {
     return (
       <div className="space-y-3">
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p role="alert" className="rounded-lg bg-neg-bg px-4 py-3 text-sm text-neg-ink">
           NOT_FOUND: no interest with this id exists.
         </p>
-        <Link href="/interests" className="text-sm underline">Back to interests</Link>
+        <BackLink href="/interests">Back to interests</BackLink>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-1">
-        <Link href="/interests" className="text-sm underline">All interests</Link>
-        <h1 className="text-2xl font-semibold">{interest.name}</h1>
+    <div className="space-y-8">
+      <header className="space-y-3">
+        <BackLink href="/interests">All interests</BackLink>
+        <h1 className="break-words text-[28px] font-semibold leading-tight tracking-[-0.025em] sm:text-[32px]">{interest.name}</h1>
         {interest.searchTerms.length > 0 ? (
-          <p className="text-sm text-slate-600">Searching for: {interest.searchTerms.join(", ")}</p>
+          <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
+            <span className="mr-1">Searching for:</span>
+            {interest.searchTerms.map((term) => (
+              <span key={term} className="rounded bg-raised px-2 py-0.5 text-[13px] text-ink">{term}</span>
+            ))}
+          </p>
         ) : null}
       </header>
       {pollError ? (

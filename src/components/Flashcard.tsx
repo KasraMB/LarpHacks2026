@@ -2,19 +2,19 @@
 
 import type { Card as CardModel } from "@/contracts";
 import type { FlashcardProps } from "./contracts";
-import { Button, Card, ErrorMessage, Loading } from "./ui";
+import { Button, ErrorMessage, Loading } from "./ui";
 
 export const cardTypeLabels: Record<CardModel["type"], { name: string; style: string }> = {
-  back_story: { name: "Back story", style: "bg-violet-100 text-violet-800" },
-  what_changed: { name: "What changed", style: "bg-blue-100 text-blue-800" },
-  if_she_asks: { name: "If she asks", style: "bg-emerald-100 text-emerald-800" },
-  dont_say: { name: "Don't say", style: "bg-red-100 text-red-800" },
+  back_story: { name: "Back story", style: "bg-raised text-ink" },
+  what_changed: { name: "What changed", style: "bg-info-bg text-info-ink" },
+  if_she_asks: { name: "If she asks", style: "bg-pos-bg text-pos-ink" },
+  dont_say: { name: "Don't say", style: "bg-neg-bg text-neg-ink" },
 };
 
 export function CardTypeLabel({ type, large = false }: { type: CardModel["type"]; large?: boolean }) {
   const label = cardTypeLabels[type];
   return (
-    <span className={`inline-block rounded-full font-semibold ${large ? "px-3 py-1 text-base" : "px-2 py-0.5 text-xs"} ${label.style}`}>
+    <span className={`inline-block whitespace-nowrap rounded-full font-medium ${large ? "px-3 py-1 text-[15px]" : "px-2.5 py-0.5 text-xs"} ${label.style}`}>
       {label.name}
     </span>
   );
@@ -22,11 +22,11 @@ export function CardTypeLabel({ type, large = false }: { type: CardModel["type"]
 
 export function EvidenceList({ evidence }: { evidence: CardModel["evidence"] }) {
   return (
-    <ul className="space-y-1 text-sm text-slate-600">
+    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted">
       {evidence.map((item, index) => (
         <li key={index}>
           {item.kind === "research" ? (
-            <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">
+            <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="link hover:text-ink">
               Source: {hostname(item.sourceUrl)}
             </a>
           ) : (
@@ -50,25 +50,31 @@ export function Flashcard({ state, answerRevealed, onRevealChange }: FlashcardPr
   const { data: card, loading, error } = state;
   if (error) return <ErrorMessage error={error} />;
   if (loading && !card) return <Loading label="Loading card..." />;
-  if (!card) return <p className="text-sm text-slate-500">No card selected.</p>;
+  if (!card) return <p className="text-sm text-muted">No card selected.</p>;
 
   const answerId = `answer-${card.id}`;
   return (
-    <Card className="space-y-4">
-      <CardTypeLabel type={card.type} />
-      <h2 className="text-xl font-semibold text-slate-900">{card.prompt}</h2>
-      <Button
-        variant="secondary"
-        aria-expanded={answerRevealed}
-        aria-controls={answerId}
-        onClick={() => onRevealChange(!answerRevealed)}
-      >
-        {answerRevealed ? "Hide answer" : "Show answer"}
-      </Button>
-      <div id={answerId} hidden={!answerRevealed} className="space-y-3 border-t border-slate-200 pt-4">
-        <p className="text-lg text-slate-900">{card.answer}</p>
+    <article key={card.id} className="card-in flex min-h-[22rem] flex-col overflow-hidden rounded-lg border border-line bg-surface">
+      <div className="flex flex-1 flex-col gap-6 p-6 sm:p-9">
+        <div className="flex items-center justify-between gap-3">
+          <CardTypeLabel type={card.type} />
+        </div>
+        <h2 className="max-w-3xl text-[24px] font-semibold leading-[1.2] tracking-[-0.02em] text-balance sm:text-[32px]">{card.prompt}</h2>
+        <div className="mt-auto">
+          <Button
+            variant="secondary"
+            aria-expanded={answerRevealed}
+            aria-controls={answerId}
+            onClick={() => onRevealChange(!answerRevealed)}
+          >
+            {answerRevealed ? "Hide answer" : "Show answer"}
+          </Button>
+        </div>
+      </div>
+      <div id={answerId} hidden={!answerRevealed} className="card-in space-y-3 bg-ink px-6 py-6 text-white sm:px-9 [&_.text-muted]:text-night-muted">
+        <p className="max-w-3xl text-[19px] leading-relaxed">{card.answer}</p>
         <EvidenceList evidence={card.evidence} />
       </div>
-    </Card>
+    </article>
   );
 }
