@@ -1,6 +1,6 @@
 # Live conversation assistance
 
-Live mode includes explicit microphone controls, interim speech recognition, immediate saved-card matching, and streamed AI suggestions. Open a completed deck's **Go live** link, choose **Start listening**, and speak near the microphone. Alternatively type into **What you hear** and choose **Get suggestions**; further typing updates suggestions until **Stop**. Manual card navigation remains available below the assistant.
+Live mode includes explicit microphone controls, interim speech recognition, immediate saved-card matching, and streamed AI suggestions. Open a completed deck's **Go live** link, choose **Start listening**, and speak near the microphone. Alternatively type into **Live transcript** and choose **Get suggestions**; further typing updates suggestions until **Stop**. Manual card navigation remains available below the assistant.
 
 Microphone recognition requires a supporting browser and a secure context (HTTPS or localhost). It uses the browser's speech service, which may process audio remotely. It hears nearby audio rather than automatically capturing a call's remote audio. Alias does not save transcripts or suggestions. Speech-service/provider latency means a suggestion before the speaker finishes is a goal, not a guarantee.
 

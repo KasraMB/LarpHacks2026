@@ -1,4 +1,4 @@
-﻿# Alias - LarpHacks2026
+# Alias - LarpHacks2026
 
 App for [alias.md](alias.md), with frontend screens connected to the shared backend API. Identity, people, claims, research, contradiction checks, persisted decks, and durable background jobs are implemented. See [interfaces](docs/INTERFACES.md) and [build checklist](BUILD_CHECKLIST.md).
 

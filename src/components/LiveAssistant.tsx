@@ -26,6 +26,7 @@ export function LiveAssistant({ deck }: { deck: Deck }) {
   const capture = useRef<ReturnType<typeof createSpeechCapture> | null>(null);
   const alive = useRef(true);
   const currentText = useRef("");
+  const transcriptField = useRef<HTMLTextAreaElement>(null);
   const cards = useRef(deck.cards);
   cards.current = deck.cards;
 
@@ -39,6 +40,12 @@ export function LiveAssistant({ deck }: { deck: Deck }) {
       session.current?.stop();
     };
   }, []);
+
+  useEffect(() => {
+    if (captureStatus !== "stopped" && transcriptField.current) {
+      transcriptField.current.scrollTop = transcriptField.current.scrollHeight;
+    }
+  }, [transcript, captureStatus]);
 
   function receive(event: LiveEvent) {
     if (!alive.current) return;
@@ -139,6 +146,11 @@ export function LiveAssistant({ deck }: { deck: Deck }) {
       <p role="status" className="py-2 text-sm text-slate-300">{captureStatus === "starting" ? "Starting microphone…" : captureStatus === "listening" ? "Listening · partial speech updates are on" : running ? "Following typed text · microphone off" : "Microphone off"}</p>
     </div>
     <div className="space-y-2">
+      <label htmlFor="live-transcript" className="block text-sm font-medium">Live transcript</label>
+      <textarea ref={transcriptField} id="live-transcript" rows={2} maxLength={1_600} readOnly={listening} value={transcript} onChange={event => updateText(event.target.value, running)} className="w-full resize-y rounded-md border border-slate-500 bg-slate-900 px-3 py-2 text-base text-white placeholder:text-slate-400" placeholder={listening ? "Listening… words appear here as you speak." : "Type what you hear, or start listening."} aria-describedby="transcript-hint" />
+      <p id="transcript-hint" className="text-xs text-slate-300">{listening ? "Updates while they speak, before the sentence is finished. Stop listening to edit." : "Type a question, then choose Get suggestions below. Stop ends requests."} Only the latest 1,600 characters are kept here.</p>
+    </div>
+    <div className="space-y-2">
       <h3 className="text-lg font-semibold">Suggested reply</h3>
       {suggestion.phrase ? <p className="break-words text-xs text-slate-300">For: “{suggestion.phrase.slice(-240)}”</p> : null}
       <p className="min-h-16 whitespace-pre-wrap break-words text-xl leading-relaxed sm:text-2xl">{suggestion.text || (suggestion.pending ? "Finding a response from this deck’s saved context…" : "Listen or enter a question to get a suggested response.")}</p>
@@ -148,11 +160,6 @@ export function LiveAssistant({ deck }: { deck: Deck }) {
     <p className="max-w-prose text-xs text-slate-300">Your browser may send audio to its speech service. Alias sends the transcript to its AI provider without saving it. The microphone hears nearby audio; it does not automatically capture another call’s audio.</p>
     {supported === false ? <p className="text-sm text-amber-200">Live speech recognition is unavailable here. Try Chrome or Edge over HTTPS, or use typed text below.</p> : null}
     {captureError ? <p role="alert" className="text-sm text-red-200">{captureError}</p> : null}
-    <label className="block space-y-2">
-      <span className="text-sm font-medium">What you hear</span>
-      <textarea rows={3} maxLength={1_600} readOnly={listening} value={transcript} onChange={event => updateText(event.target.value, running)} className="w-full resize-y rounded-md border border-slate-500 bg-slate-900 px-3 py-2 text-base text-white placeholder:text-slate-400" placeholder="For example: What do you like about C++?" aria-describedby="transcript-hint" />
-      <span id="transcript-hint" className="block text-xs text-slate-300">{listening ? "Partial speech appears here. Stop listening to edit it." : "Type a question, then choose Get suggestions. Keep typing to update them; Stop ends requests."} Only the latest 1,600 characters are used.</span>
-    </label>
     {!listening ? <div className="flex flex-wrap gap-3">
       <Button variant="secondary" className="min-h-11" disabled={transcript.trim().length < 2} onClick={() => { session.current?.stop(); session.current = null; ensureSession().update(currentText.current); }}>Get suggestions</Button>
       <button type="button" className="min-h-11 px-2 text-sm text-sky-300 underline disabled:opacity-50" disabled={!transcript} onClick={() => { stop(); updateText("", false); setSuggestion({ revision: -1, text: "", phrase: "", pending: false, complete: false }); setError(null); setCaptureError(null); }}>Clear conversation</button>
