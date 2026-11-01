@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { ArrowIcon } from "@/components/ui";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Card } from "@/contracts";
-import { api } from "@/lib/api";
+import type { LiveSuggestPanelProps } from "@/components/contracts";
+import { api, apiMode } from "@/lib/api";
+import { useLiveSuggest } from "@/lib/use-live-suggest";
+import { useSpeechRecognition } from "@/lib/use-speech-recognition";
 import { isTerminal, listAll, usePolling, useResource } from "@/lib/use-resource";
 import { LiveMode } from "@/components/LiveMode";
 import { DeckEvidenceProvider } from "@/components/DeckEvidence";
@@ -58,6 +61,52 @@ export function DeckLiveController({ deckId }: { deckId: string }) {
     if (activeInterestId) setPinned({ cardId: cards[target].id, interestId: activeInterestId });
   }, [cards, activeInterestId]);
 
+  // Suggestions only run against the real backend for a finished deck; nothing here is saved.
+  const available = apiMode === "real";
+  const live = useLiveSuggest(available && deck?.status === "completed" && cards.length > 0 ? deck.id : null);
+  const { update: updatePhrase, stop: stopSuggest, resume: resumeSuggest, retry: retrySuggest } = live;
+  const speech = useSpeechRecognition(useCallback((text: string) => updatePhrase(text, "speech"), [updatePhrase]));
+  const { start: startListening, stop: stopListening } = speech;
+
+  // A different deck must not keep listening into the old session.
+  useEffect(() => stopListening, [deckId, stopListening]);
+  // Once requests halt, nothing consumes the audio, so stop sending it to the speech service.
+  const halted = live.state.halted;
+  useEffect(() => {
+    if (halted) stopListening();
+  }, [halted, stopListening]);
+
+  const onOpenCard = useCallback(
+    (cardId: string) => {
+      const target = cards.findIndex((card) => card.id === cardId);
+      if (target >= 0) setActiveIndex(target);
+    },
+    [cards],
+  );
+
+  const suggest: LiveSuggestPanelProps = {
+    available,
+    speech: speech.state,
+    state: live.state,
+    onListenChange: (listen) => {
+      if (listen) {
+        resumeSuggest();
+        startListening();
+      } else {
+        stopListening();
+        stopSuggest();
+      }
+    },
+    onTypedChange: (text) => updatePhrase(text, "typing"),
+    onTypedSubmit: (text) => updatePhrase(text, "submit"),
+    onStop: () => {
+      stopListening();
+      stopSuggest();
+    },
+    onRetry: retrySuggest,
+    onOpenCard,
+  };
+
   return (
     <DeckEvidenceProvider deck={deck}>
       <div data-live-route className="fixed inset-0 z-50 overflow-y-auto bg-night text-ground">
@@ -80,6 +129,7 @@ export function DeckLiveController({ deckId }: { deckId: string }) {
               onNext={onNext}
               onJumpToInterest={onJumpToInterest}
               onJumpToType={onJumpToType}
+              suggest={suggest}
             />
           </div>
         </div>

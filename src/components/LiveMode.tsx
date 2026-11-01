@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import type { LiveModeProps } from "./contracts";
 import { cardTypeLabels, CardTypeLabel, EvidenceList } from "./Flashcard";
+import { LiveSuggestPanel } from "./LiveSuggestPanel";
 import { isInteractiveTarget } from "./PrepMode";
 import { ArrowIcon, Button, ErrorMessage, formatSerial } from "./ui";
 
@@ -16,6 +17,7 @@ export function LiveMode({
   onNext,
   onJumpToInterest,
   onJumpToType,
+  suggest,
 }: LiveModeProps) {
   const { data: deck, loading, error } = state;
   const cards = deck?.cards ?? [];
@@ -86,6 +88,8 @@ export function LiveMode({
             This deck has no cards.
           </p>
         ) : null}
+
+        {suggest && deck?.status === "completed" && cards.length > 0 ? <LiveSuggestPanel {...suggest} /> : null}
 
         {cards.length > 0 ? (
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Card types">

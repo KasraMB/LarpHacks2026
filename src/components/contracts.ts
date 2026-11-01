@@ -3,6 +3,7 @@ import type {
   Card,
   Claim,
   Deck,
+  Failure,
   Identity,
   Interest,
   Person,
@@ -95,4 +96,50 @@ export type LiveModeProps = {
   onNext: () => Promise<void>;
   onJumpToInterest: (interestId: string) => Promise<void>;
   onJumpToType: (type: Card["type"]) => Promise<void>;
+  /** Present when the live suggestions panel should render. */
+  suggest?: LiveSuggestPanelProps;
+};
+
+export type LiveSuggestMatches = { revision: number; cards: Card[]; warnings: string[] };
+
+/** Provisional model text; never a saved or source-linked card. */
+export type LiveSuggestion = {
+  revision: number;
+  text: string;
+  status: "streaming" | "done" | "incomplete";
+  error: Failure | null;
+};
+
+export type LiveSuggestState = {
+  matches: LiveSuggestMatches | null;
+  suggestion: LiveSuggestion | null;
+  /** Revision of the generation in flight, or null. */
+  generatingRevision: number | null;
+  /** Request-level failure (non-200 response or network). */
+  error: Failure | null;
+  /** True after a non-retryable failure; requests resume only on a user action. */
+  halted: boolean;
+  /** True after a server configuration error; card matching continues, generation waits for Retry. */
+  generationPaused: boolean;
+};
+
+export type LiveSpeechState = {
+  /** null until feature detection runs in the browser. */
+  supported: boolean | null;
+  listening: boolean;
+  heard: string;
+  error: string | null;
+};
+
+export type LiveSuggestPanelProps = {
+  /** False outside the real backend (memory/mock API modes). */
+  available: boolean;
+  speech: LiveSpeechState;
+  state: LiveSuggestState;
+  onListenChange: (listen: boolean) => void;
+  onTypedChange: (text: string) => void;
+  onTypedSubmit: (text: string) => void;
+  onStop: () => void;
+  onRetry: () => void;
+  onOpenCard: (cardId: string) => void;
 };
