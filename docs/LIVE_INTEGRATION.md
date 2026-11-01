@@ -1,6 +1,10 @@
-# Live conversation backend
+# Live conversation assistance
 
-The backend accepts **partial text transcripts** and streams useful saved cards before model output. The microphone, speech-to-text capture, and presentation remain frontend work. No frontend components were changed for this endpoint.
+Live mode includes explicit microphone controls, interim speech recognition, immediate saved-card matching, and streamed AI suggestions. Open a completed deck's **Go live** link, choose **Start listening**, and speak near the microphone. Alternatively type into **What you hear** and choose **Get suggestions**; further typing updates suggestions until **Stop**. Manual card navigation remains available below the assistant.
+
+Microphone recognition requires a supporting browser and a secure context (HTTPS or localhost). It uses the browser's speech service, which may process audio remotely. It hears nearby audio rather than automatically capturing a call's remote audio. Alias does not save transcripts or suggestions. Speech-service/provider latency means a suggestion before the speaker finishes is a goal, not a guarantee.
+
+`src/lib/speech-capture.ts` handles interim revisions, bounded transcript retention, recognition restarts, permission errors, and cleanup. `src/lib/live-session.ts` validates NDJSON, runs at most one generation at a time, refreshes from the latest phrase, respects rate limits, and aborts on Stop/unmount or a 25-second client deadline. The built-in UI matches the saved deck locally on every text update and sets `retrieve: false` to avoid redundant retrieval requests; other clients can retain retrieval-only requests. Stop, deck navigation, and unmount end capture and requests. Interrupted output is labeled incomplete. Text is rendered as text, never HTML.
 
 ## Request
 
@@ -38,7 +42,7 @@ Success is HTTP 200 with `Content-Type: application/x-ndjson; charset=utf-8`, `C
 
 Before streaming starts, failures use normal JSON `{ "ok": false, "error": { "code", "message", "retryable" } }`: 400 invalid input, 401 sign-in required, 403 foreign origin, 404 missing/foreign deck, 408 slow upload, 409 incomplete deck or unavailable snapshot, 413 oversized body, 415 wrong content type, 429 busy, or 503 unavailable service. Cancellation can return 499 before streaming. Check HTTP status before trying to parse NDJSON.
 
-## Microphone integration for the frontend owner
+## Speech and request lifecycle
 
 1. Start listening only through the user's explicit control. Browser `SpeechRecognition` / `webkitSpeechRecognition` can supply `continuous = true` and `interimResults = true`; consume interim results without waiting for `isFinal`. Feature-detect and provide a typed transcript fallback. Some browsers use a remote speech service; explain that audio processing before enabling it. Browser support is limited. See [MDN speech recognition](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition) and [interim results](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition/interimResults).
 2. Microphone audio captured by a tab is not automatically the remote side of a video call or the computer's output. Select/capture the intended audio source explicitly if that is required. This endpoint does not receive audio, perform transcription, identify speakers, or record a call.
@@ -55,4 +59,4 @@ Uses the existing server-only `FEATHERLESS_API_KEY` and `FEATHERLESS_MODEL`. No 
 
 Model generation has no automatic retries, a 15-second full-stream deadline, a 320-token output budget, bounded snapshot selection, and an 18,000-character input budget. The HTTP stream has a 20-second generation deadline, an additional 6000-character / 1024-event output cap, and request/consumer cancellation. Errors are sanitized; raw provider messages, credentials, and prompts are not returned. A timeout or output truncation is a terminal error, even if some text has already streamed.
 
-Fast card retrieval avoids waiting for an AI response, but latency includes authentication, database access, network, speech recognition, and any Render cold start. Responding before someone finishes a sentence is an intended interaction, not a timing guarantee. No live microphone, live Featherless latency, or deployed proxy buffering has been verified by backend unit tests. Existing research limitations still apply: this feature does not turn obscure source material into a complete course or add missing foundational evidence.
+Local card matching avoids network latency; generation still includes authentication, database access, network, speech recognition, and any Render cold start. Responding before someone finishes a sentence is an intended interaction, not a timing guarantee. Tests cover simulated recognition and provider streams; real microphone recognition, live Featherless latency, and deployed proxy buffering remain unverified. Existing research limitations still apply: this feature does not turn obscure source material into a complete course or add missing foundational evidence.

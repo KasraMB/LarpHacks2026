@@ -1,232 +1,285 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { capPhrase, createLineBuffer, readNdjson, retryAfterMs } from "../src/lib/ndjson";
-import { LiveSuggestSession } from "../src/lib/use-live-suggest";
-import type { LiveSuggestState } from "../src/components/contracts";
-import { cards } from "../src/fixtures/demo";
+import { consumeLiveResponse, createLiveSession, type LiveEvent } from "../src/lib/live-session";
 
-function streamOf(chunks: Uint8Array[]) {
-  return new ReadableStream<Uint8Array>({
+const encode = new TextEncoder();
+const line = (event: LiveEvent) => JSON.stringify(event) + "\n";
+const matches = (revision: number): LiveEvent => ({ type: "matches", revision, cards: [], warnings: [], researchSince: null });
+function response(text: string) {
+  return new Response(text, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8" } });
+}
+const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+test("live transport decodes fragmented multibyte UTF-8 and multiple lines", async () => {
+  const events: LiveEvent[] = [matches(1), { type: "delta", revision: 1, text: "café 日本 🎤" }, { type: "done", revision: 1 }];
+  const bytes = encode.encode(events.map(line).join(""));
+  const stream = new ReadableStream<Uint8Array>({
     start(controller) {
-      for (const chunk of chunks) controller.enqueue(chunk);
+      for (const byte of bytes) controller.enqueue(Uint8Array.of(byte));
       controller.close();
     },
   });
+  const actual: LiveEvent[] = [];
+  await consumeLiveResponse(new Response(stream, { headers: { "Content-Type": "application/x-ndjson" } }), (event) => actual.push(event));
+  assert.deepEqual(actual, events);
+});
+
+test("live transport reads safe HTTP errors and does not expose HTML bodies", async () => {
+  await assert.rejects(consumeLiveResponse(new Response(JSON.stringify({ ok: false, error: {
+    code: "AUTH_REQUIRED", message: "Sign in to continue.", retryable: false,
+  } }), { status: 401 }), () => assert.fail("HTTP error must not dispatch")), /Sign in to continue/);
+  await assert.rejects(consumeLiveResponse(new Response("<html>secret server trace</html>", { status: 503 }), () => undefined), /unavailable \(503\)/);
+});
+
+test("a terminal stream error is delivered and cancels its reader", async () => {
+  let cancelled = false;
+  const terminal: LiveEvent = { type: "error", revision: 1, error: { code: "AI_TIMEOUT", message: "Try again later.", retryable: true } };
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) { controller.enqueue(encode.encode(line(matches(1)) + line(terminal))); },
+    cancel() { cancelled = true; },
+  });
+  const actual: LiveEvent[] = [];
+  await consumeLiveResponse(new Response(stream, { headers: { "Content-Type": "application/x-ndjson" } }), (event) => actual.push(event));
+  assert.deepEqual(actual, [matches(1), terminal]);
+  assert.equal(cancelled, true);
+  assert.equal(stream.locked, false);
+});
+
+test("premature EOF, invalid events and oversized lines fail clearly", async () => {
+  await assert.rejects(consumeLiveResponse(response(line(matches(1))), () => undefined), /before the suggestion was complete/);
+  await assert.rejects(consumeLiveResponse(response('{"type":"done","revision":"bad"}\n'), () => undefined), /invalid event/);
+  await assert.rejects(consumeLiveResponse(response("x".repeat(131_073)), () => undefined), /event limit/);
+});
+
+test("aborting a pending read cancels and releases the stream", async () => {
+  let cancelled = false;
+  const stream = new ReadableStream<Uint8Array>({ cancel() { cancelled = true; } });
+  const controller = new AbortController();
+  const pending = consumeLiveResponse(new Response(stream, { headers: { "Content-Type": "application/x-ndjson" } }), () => undefined, controller.signal);
+  controller.abort();
+  await assert.rejects(pending, { name: "AbortError" });
+  assert.equal(cancelled, true);
+  assert.equal(stream.locked, false);
+});
+
+function clock() {
+  let time = 0;
+  let tick: (() => void) | undefined;
+  return {
+    now: () => time,
+    scheduler: {
+      setInterval(callback: () => void) { tick = callback; return 1; },
+      clearInterval() { tick = undefined; },
+    },
+    async advance(milliseconds: number) {
+      for (let elapsed = 0; elapsed < milliseconds; elapsed += 50) {
+        time += 50;
+        tick?.();
+        await flush();
+      }
+    },
+  };
 }
 
-test("line buffer keeps partial lines and drops blanks and CR", () => {
-  const lines = createLineBuffer();
-  assert.deepEqual(lines.push('{"a":1}\r\n{"b"'), ['{"a":1}']);
-  assert.deepEqual(lines.push(':2}\n\n{"c":3}\n{"d"'), ['{"b":2}', '{"c":3}']);
-  assert.deepEqual(lines.flush(), ['{"d"']);
-  assert.deepEqual(lines.flush(), []);
-});
-
-test("readNdjson decodes multi-byte characters split across chunks and flushes the last line", async () => {
-  const bytes = new TextEncoder().encode('{"t":"café 🎉"}\n{"t":"end"}');
-  const split = bytes.indexOf(0xc3) + 1; // inside "é"
-  const emoji = bytes.indexOf(0xf0) + 2; // inside the emoji
-  const values: unknown[] = [];
-  const end = await readNdjson(streamOf([bytes.slice(0, split), bytes.slice(split, emoji), bytes.slice(emoji)]), (value) => {
-    values.push(value);
-    return false;
-  });
-  assert.equal(end, "eof");
-  assert.deepEqual(values, [{ t: "café 🎉" }, { t: "end" }]);
-});
-
-test("readNdjson stops on a terminal value and reports invalid JSON", async () => {
-  const encode = (s: string) => new TextEncoder().encode(s);
-  const seen: unknown[] = [];
-  assert.equal(await readNdjson(streamOf([encode('{"n":1}\n{"n":2}\n{"n":3}\n')]), (v) => (seen.push(v), seen.length === 2)), "stopped");
-  assert.equal(seen.length, 2);
-  assert.equal(await readNdjson(streamOf([encode('{"n":1}\nnot json\n')]), () => false), "invalid");
-});
-
-test("capPhrase keeps the newest text within the limit at a word boundary", () => {
-  assert.equal(capPhrase("  hello   there \n"), "hello there");
-  const long = Array.from({ length: 400 }, (_, i) => `word${i}`).join(" ");
-  const capped = capPhrase(long);
-  assert.ok(capped.length <= 1600);
-  assert.ok(capped.endsWith("word399"));
-  assert.match(capped, /^word\d+ /);
-  assert.equal(retryAfterMs("1"), 1000);
-  assert.equal(retryAfterMs(null), 1000);
-  assert.equal(retryAfterMs("3"), 3000);
-});
-
-/** Fake clock, timers and fetch so scheduling is deterministic. */
-function harness() {
-  let now = 0;
-  let timers: Array<{ at: number; fn: () => void; id: number }> = [];
-  let nextId = 1;
-  const requests: Array<{ at: number; body: { transcript: string; revision: number; generate: boolean }; signal: AbortSignal; respond: (r: Response) => void }> = [];
-  const states: LiveSuggestState[] = [];
-  const session = new LiveSuggestSession("deck-1", (s) => states.push(s), {
-    now: () => now,
-    setTimeout: (fn, ms) => {
-      const id = nextId++;
-      timers.push({ at: now + ms, fn, id });
-      return id;
+test("continuous interim speech retrieves while one generation streams, then generates newest phrase", async () => {
+  const timer = clock();
+  const requests: { at: number; transcript: string; generate: boolean; revision: number; signal: AbortSignal }[] = [];
+  const streams: ReadableStreamDefaultController<Uint8Array>[] = [];
+  const events: LiveEvent[] = [];
+  const session = createLiveSession({
+    deckId: "deck", ...timer, onEvent: (event) => events.push(event), onError: (message) => assert.fail(message),
+    fetchImpl: async (_url, init) => {
+      assert.equal(init?.credentials, "same-origin");
+      const body = JSON.parse(init!.body as string);
+      requests.push({ ...body, at: timer.now(), signal: init!.signal as AbortSignal });
+      if (!body.generate) return response(line(matches(body.revision)) + line({ type: "done", revision: body.revision }));
+      return new Response(new ReadableStream<Uint8Array>({ start(controller) { streams.push(controller); } }), {
+        headers: { "Content-Type": "application/x-ndjson" },
+      });
     },
-    clearTimeout: (id) => {
-      timers = timers.filter((t) => t.id !== id);
-    },
-    fetch: (_url, init) =>
-      new Promise<Response>((resolve, reject) => {
-        const signal = init!.signal!;
-        signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
-        requests.push({ at: now, body: JSON.parse(String(init!.body)), signal, respond: resolve });
-      }),
   });
-  const flush = () => new Promise((resolve) => setImmediate(resolve));
-  async function advance(ms: number) {
-    const end = now + ms;
-    for (;;) {
-      timers.sort((a, b) => a.at - b.at);
-      const next = timers[0];
-      if (!next || next.at > end) break;
-      timers.shift();
-      now = next.at;
-      next.fn();
-      await flush();
-    }
-    now = end;
+  session.update("?!");
+  assert.equal(requests.length, 0);
+  session.update("an early phrase");
+  for (let index = 0; index < 24; index++) {
+    session.update(`continuous phrase ${index}`);
+    await timer.advance(100);
+  }
+  assert.equal(requests.filter((request) => request.generate).length, 1);
+  assert.ok(requests.filter((request) => !request.generate).length >= 2);
+  assert.ok(events.some((event) => event.type === "matches" && event.revision > requests[0].revision));
+  streams[0].enqueue(encode.encode(line(matches(requests[0].revision)) + line({ type: "delta", revision: requests[0].revision, text: "A useful early response" }) + line({ type: "done", revision: requests[0].revision })));
+  await flush();
+  assert.equal(events.some((event) => event.type === "matches" && event.revision === requests[0].revision), false);
+  assert.equal(events.some((event) => event.type === "delta"), true);
+  await timer.advance(400);
+  const generated = requests.filter((request) => request.generate);
+  assert.equal(generated.length, 2);
+  assert.equal(generated[1].transcript, "continuous phrase 23");
+  requests.slice(1).forEach((request, index) => assert.ok(request.at - requests[index].at >= 350));
+  session.stop();
+  assert.ok(requests.at(-1)!.signal.aborted);
+  const count = requests.length;
+  session.update("ignored");
+  await timer.advance(5_000);
+  assert.equal(requests.length, count);
+});
+
+test("a completed generation does not repeat an unchanged rolling transcript", async () => {
+  const timer = clock();
+  const texts: string[] = [];
+  const session = createLiveSession({
+    deckId: "deck", ...timer, onEvent: () => undefined, onError: (message) => assert.fail(message),
+    fetchImpl: async (_url, init) => {
+      const body = JSON.parse(init!.body as string);
+      texts.push(body.transcript);
+      return response(line({ type: "done", revision: body.revision }));
+    },
+  });
+  session.update("x".repeat(2_000));
+  await timer.advance(10_000);
+  assert.deepEqual(texts, ["x".repeat(1_600)]);
+  session.stop();
+});
+
+test("429 respects Retry-After and retries only the newest pending transcript", async () => {
+  const timer = clock();
+  const requests: { at: number; transcript: string }[] = [];
+  const errors: string[] = [];
+  const session = createLiveSession({
+    deckId: "deck", ...timer, onEvent: () => undefined, onError: (message) => errors.push(message),
+    fetchImpl: async (_url, init) => {
+      const body = JSON.parse(init!.body as string);
+      requests.push({ at: timer.now(), transcript: body.transcript });
+      if (requests.length === 1) return new Response('{"ok":false,"error":{"code":"BUSY","message":"Busy","retryable":true}}', { status: 429, headers: { "Retry-After": "3" } });
+      return response(line({ type: "done", revision: body.revision }));
+    },
+  });
+  session.update("first phrase");
+  await flush();
+  session.update("latest phrase");
+  await timer.advance(2_900);
+  assert.equal(requests.length, 1);
+  await timer.advance(200);
+  assert.equal(requests.length, 2);
+  assert.equal(requests[1].transcript, "latest phrase");
+  assert.ok(requests[1].at >= 3_000);
+  assert.deepEqual(errors, ["Busy"]);
+  session.stop();
+});
+
+test("authentication or inaccessible deck failures stop automatic requests", async () => {
+  for (const status of [401, 403, 404]) {
+    const timer = clock();
+    let requests = 0;
+    const starts: { revision: number; transcript: string }[] = [];
+    const errors: string[] = [];
+    const session = createLiveSession({
+      deckId: "deck", ...timer, onEvent: () => assert.fail("no events expected"), onError: (message) => errors.push(message),
+      onGenerationStart: (revision, transcript) => starts.push({ revision, transcript }),
+      fetchImpl: async () => { requests++; return new Response(null, { status }); },
+    });
+    session.update("heard phrase");
     await flush();
+    session.update("new phrase after failed authorization");
+    await timer.advance(10_000);
+    assert.equal(requests, 1);
+    assert.equal(errors.length, 1);
+    assert.deepEqual(starts, [{ revision: 1, transcript: "heard phrase" }]);
+    session.stop();
   }
-  const latest = () => states.at(-1)!;
-  return { session, requests, advance, flush, latest };
-}
-
-function ndjson(events: object[], close = true) {
-  let controller!: ReadableStreamDefaultController<Uint8Array>;
-  const body = new ReadableStream<Uint8Array>({ start: (c) => { controller = c; } });
-  const push = (event: object) => controller.enqueue(new TextEncoder().encode(JSON.stringify(event) + "\n"));
-  events.forEach(push);
-  if (close) controller.close();
-  return { response: new Response(body, { status: 200, headers: { "Content-Type": "application/x-ndjson" } }), push, close: () => controller.close() };
-}
-
-test("session throttles retrieval, runs one generation at a time, and refreshes from the newest phrase", async () => {
-  const h = harness();
-  h.session.update("what do you think", "speech");
-  await h.advance(0);
-  assert.equal(h.requests.length, 1);
-  assert.equal(h.requests[0].body.generate, false);
-  h.requests[0].respond(ndjson([{ type: "matches", revision: 1, cards: [cards[0]], warnings: [], researchSince: null }, { type: "done", revision: 1 }]).response);
-  await h.flush();
-  assert.equal(h.latest().matches?.cards[0].id, cards[0].id);
-
-  // Generation waits for the request spacing slot.
-  await h.advance(399);
-  assert.equal(h.requests.length, 1);
-  await h.advance(1);
-  assert.equal(h.requests[1].body.generate, true);
-  const generation = ndjson([{ type: "matches", revision: 1, cards: [], warnings: [], researchSince: null }], false);
-  h.requests[1].respond(generation.response);
-  await h.flush();
-
-  // Speech keeps arriving every 100ms; retrieval follows a cadence, generation does not restart.
-  for (let i = 0; i < 12; i++) {
-    h.session.update(`what do you think about templates ${i}`, "speech");
-    await h.advance(100);
-  }
-  const retrievals = h.requests.filter((r) => !r.body.generate);
-  for (let i = 1; i < h.requests.length; i++) assert.ok(h.requests[i].at - h.requests[i - 1].at >= 400);
-  assert.equal(h.requests.filter((r) => r.body.generate).length, 1);
-  assert.ok(retrievals.length >= 2);
-  // Retrievals answered after the generation's matches are newer and win.
-  for (const r of retrievals.slice(1)) {
-    r.respond(ndjson([{ type: "matches", revision: r.body.revision, cards: [cards[1]], warnings: [], researchSince: null }, { type: "done", revision: r.body.revision }]).response);
-  }
-  await h.flush();
-  assert.equal(h.latest().matches?.cards[0].id, cards[1].id);
-
-  // Obsolete revisions are ignored; matching ones stream in.
-  generation.push({ type: "delta", revision: 99, text: "ignored" });
-  generation.push({ type: "delta", revision: 1, text: "Ask which " });
-  generation.push({ type: "delta", revision: 1, text: "part they use." });
-  generation.push({ type: "done", revision: 1 });
-  await h.flush();
-  await h.flush();
-  assert.equal(h.latest().suggestion?.text, "Ask which part they use.");
-  assert.equal(h.latest().suggestion?.status, "done");
-
-  await h.advance(1000);
-  const refreshed = h.requests.filter((r) => r.body.generate);
-  assert.equal(refreshed.length, 2);
-  assert.match(refreshed[1].body.transcript, /templates 11$/);
-  h.session.dispose();
-  assert.ok(refreshed[1].signal.aborted);
 });
 
-test("session marks errored and truncated streams incomplete, keeps matches, and backs off on 429", async () => {
-  const h = harness();
-  h.session.update("Explain C++ templates", "submit");
-  await h.advance(0);
-  h.requests[0].respond(new Response(JSON.stringify({ ok: false, error: { code: "LIVE_RATE_LIMIT", message: "busy", retryable: true } }), { status: 429, headers: { "Retry-After": "1" } }));
-  await h.flush();
-  await h.advance(999);
-  assert.equal(h.requests.length, 1);
-  await h.advance(1);
-  assert.equal(h.requests.length, 2);
-  h.requests[1].respond(ndjson([{ type: "matches", revision: 1, cards: [cards[0]], warnings: [], researchSince: null }, { type: "done", revision: 1 }]).response);
-  await h.advance(400);
-  const gen = h.requests[2];
-  assert.equal(gen.body.generate, true);
-  gen.respond(ndjson([
-    { type: "matches", revision: 1, cards: [cards[0]], warnings: [], researchSince: null },
-    { type: "delta", revision: 1, text: "Partial" },
-    { type: "error", revision: 1, error: { code: "AI_OUTPUT_TRUNCATED", message: "Stopped early.", retryable: false } },
-  ]).response);
-  await h.flush();
-  await h.flush();
-  assert.equal(h.latest().suggestion?.status, "incomplete");
-  assert.equal(h.latest().suggestion?.error?.message, "Stopped early.");
-  assert.equal(h.latest().matches?.cards.length, 1);
-  // A phrase-specific error does not stop the refresh once the phrase changes.
-  h.session.update("Explain C++ templates more please", "speech");
-  await h.advance(2000);
-  const gens = h.requests.filter((r) => r.body.generate);
-  assert.equal(gens.length, 2);
-  // A configuration error pauses generation until Retry; matching continues.
-  gens[1].respond(ndjson([{ type: "error", revision: 2, error: { code: "AI_MISSING_KEY", message: "No key.", retryable: false } }]).response);
-  await h.flush();
-  await h.flush();
-  assert.equal(h.latest().generationPaused, true);
-  for (const r of h.requests.filter((r) => !r.body.generate && !r.signal.aborted).slice(1)) {
-    r.respond(ndjson([{ type: "done", revision: r.body.revision }]).response);
+test("stop drops late fetch results and all callbacks", async () => {
+  const timer = clock();
+  let finish: ((response: Response) => void) | undefined;
+  const events: LiveEvent[] = [];
+  const errors: string[] = [];
+  const session = createLiveSession({
+    deckId: "deck", ...timer, onEvent: (event) => events.push(event), onError: (message) => errors.push(message),
+    fetchImpl: async () => new Promise<Response>((resolve) => { finish = resolve; }),
+  });
+  session.update("heard phrase");
+  session.stop();
+  finish!(response(line(matches(1)) + line({ type: "done", revision: 1 })));
+  await flush();
+  assert.deepEqual(events, []);
+  assert.deepEqual(errors, []);
+});
+
+test("retrieval can be disabled while generation still refreshes changed phrases", async () => {
+  const timer = clock();
+  const requests: { generate: boolean; revision: number }[] = [];
+  const streams: ReadableStreamDefaultController<Uint8Array>[] = [];
+  const session = createLiveSession({
+    deckId: "deck", ...timer, retrieve: false,
+    onEvent: () => undefined, onError: (message) => assert.fail(message),
+    fetchImpl: async (_url, init) => {
+      const body = JSON.parse(init!.body as string);
+      requests.push(body);
+      return new Response(new ReadableStream<Uint8Array>({ start(controller) { streams.push(controller); } }), {
+        headers: { "Content-Type": "application/x-ndjson" },
+      });
+    },
+  });
+  session.update("first phrase");
+  await flush();
+  session.update("new phrase while generation streams");
+  await timer.advance(2_000);
+  assert.equal(requests.length, 1);
+  streams[0].enqueue(encode.encode(line({ type: "done", revision: requests[0].revision })));
+  await flush();
+  await timer.advance(50);
+  assert.equal(requests.length, 2);
+  assert.ok(requests.every((request) => request.generate));
+  session.stop();
+});
+
+test("the request deadline releases a stalled fetch and does not repeat the unchanged phrase", async () => {
+  const timer = clock();
+  const errors: string[] = [];
+  const signals: AbortSignal[] = [];
+  const session = createLiveSession({
+    deckId: "deck", ...timer, retrieve: false, requestTimeoutMs: 10,
+    onEvent: () => undefined, onError: (message) => errors.push(message),
+    fetchImpl: async (_url, init) => {
+      signals.push(init!.signal as AbortSignal);
+      if (signals.length === 1) return new Promise<Response>(() => undefined);
+      const body = JSON.parse(init!.body as string);
+      return response(line({ type: "done", revision: body.revision }));
+    },
+  });
+  session.update("first phrase");
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.equal(signals[0].aborted, true);
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /took too long.*new phrase/);
+  await timer.advance(2_000);
+  assert.equal(signals.length, 1);
+  session.update("a new phrase");
+  await flush();
+  assert.equal(signals.length, 2);
+  assert.equal(errors.length, 1);
+  session.stop();
+});
+
+test("a stalled stream times out, but stopping suppresses timeout errors", async () => {
+  for (const shouldStop of [false, true]) {
+    const errors: string[] = [];
+    let cancelled = false;
+    const session = createLiveSession({
+      deckId: "deck", retrieve: false, requestTimeoutMs: 10,
+      onEvent: () => assert.fail("no events expected"), onError: (message) => errors.push(message),
+      fetchImpl: async () => new Response(new ReadableStream<Uint8Array>({ cancel() { cancelled = true; } }), {
+        headers: { "Content-Type": "application/x-ndjson" },
+      }),
+    });
+    session.update("heard phrase");
+    if (shouldStop) session.stop();
+    await flush();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    assert.equal(cancelled, true);
+    assert.equal(errors.length, shouldStop ? 0 : 1);
+    session.stop();
   }
-  await h.flush();
-  const before = h.requests.length;
-  h.session.update("Explain C++ templates more please now", "speech");
-  await h.advance(2000);
-  assert.equal(h.requests.filter((r) => r.body.generate).length, 2);
-  assert.ok(h.requests.length > before);
-  h.session.retry();
-  await h.advance(2000);
-  assert.equal(h.requests.filter((r) => r.body.generate).length, 3);
-  h.session.dispose();
-
-  const h2 = harness();
-  h2.session.update("hello there friend", "submit");
-  await h2.advance(400);
-  const g = h2.requests.find((r) => r.body.generate)!;
-  g.respond(ndjson([{ type: "delta", revision: 1, text: "Half" }]).response);
-  await h2.flush();
-  await h2.flush();
-  assert.equal(h2.latest().suggestion?.status, "incomplete");
-  assert.equal(h2.latest().suggestion?.text, "Half");
-
-  const h3 = harness();
-  h3.session.update("hello there friend", "typing");
-  await h3.advance(0);
-  h3.requests[0].respond(new Response(JSON.stringify({ ok: false, error: { code: "NOT_FOUND", message: "Deck not found.", retryable: false } }), { status: 404 }));
-  await h3.flush();
-  await h3.flush();
-  assert.equal(h3.latest().halted, true);
-  assert.equal(h3.latest().error?.message, "Deck not found.");
-  h3.session.update("hello there friend again", "typing");
-  await h3.advance(2000);
-  assert.equal(h3.requests.length, 1);
 });
