@@ -4,16 +4,17 @@ import type { Interest } from "@/contracts";
 import { createArticleReader, createDiscoverySources, validatePublicUrl } from "../src/server/research";
 import { responseFromBytes } from "../src/server/research/safe-fetch";
 
-const interest: Interest = { id: "i1", identityId: "id1", name: "NBA", searchTerms: ["Toronto Raptors"], feedUrls: [],
+const interest: Interest = { id: "i1", identityId: "id1", name: "NBA", visibility: "private", searchTerms: ["Toronto Raptors"], feedUrls: [],
   createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" };
+const now = () => new Date("2026-06-02T00:00:00Z");
 const publicLookup = async () => [{ address: "93.184.216.34", family: 4 }];
 const feed = (items: string) => `<?xml version="1.0"?><rss version="2.0"><channel><title>test</title>${items}</channel></rss>`;
-const item = (url: string, title = "Story") => `<item><title>${title}</title><link>${url}</link><pubDate>Mon, 01 Jun 2026 12:00:00 GMT</pubDate></item>`;
+const item = (url: string, title = "NBA Story") => `<item><title>${title}</title><link>${url}</link><pubDate>Mon, 01 Jun 2026 12:00:00 GMT</pubDate></item>`;
 
 test("RSS topic pack parses entries, deduplicates URLs, and drops unsafe URLs", async () => {
   const fetchImpl = async (input: RequestInfo | URL) => new Response(feed(
     item("https://example.com/story#top") + item("https://example.com/story", "Duplicate") + item("http://127.0.0.1/admin", "Local")), { status: 200 });
-  const sources = createDiscoverySources({ fetchImpl: fetchImpl as typeof fetch, lookupImpl: publicLookup });
+  const sources = createDiscoverySources({ now, composioApiKey: null, fetchImpl: fetchImpl as typeof fetch, lookupImpl: publicLookup });
   const result = await sources.find(source => source.kind === "rss")!.discover(interest);
   assert.equal(result.length, 1);
   assert.equal(result[0]?.url, "https://example.com/story");
@@ -24,15 +25,15 @@ test("RSS topic pack parses entries, deduplicates URLs, and drops unsafe URLs", 
 test("Google News, HN, Reddit, and Wikipedia discovery adapters parse their public response formats", async () => {
   const fetchImpl = async (input: RequestInfo | URL) => {
     const url = String(input);
-    if (url.includes("news.google.com")) return new Response(feed(item("https://news.example/story", "News")));
-    if (url.includes("hn.algolia.com")) return new Response(JSON.stringify({ hits: [{ title: "HN", url: "https://hn.example/post", created_at: "2026-06-01T00:00:00Z" }] }));
-    if (url.includes("reddit.com/search.rss")) return new Response(feed(item("https://www.reddit.com/r/nba/comments/abc/post/", "Reddit")));
+    if (url.includes("news.google.com")) return new Response(feed(item("https://news.example/story", "NBA News")));
+    if (url.includes("hn.algolia.com")) return new Response(JSON.stringify({ hits: [{ title: "NBA HN", url: "https://hn.example/post", created_at: "2026-06-01T00:00:00Z" }] }));
+    if (url.includes("reddit.com/search.rss")) return new Response(feed(item("https://www.reddit.com/r/nba/comments/abc/post/", "NBA Reddit")));
     if (url.includes("wikipedia.org/w/api.php")) return new Response(JSON.stringify({ query: { search: [{ title: "Toronto Raptors" }] } }));
     throw new Error(`Unexpected URL ${url}`);
   };
-  const sources = createDiscoverySources({ fetchImpl: fetchImpl as typeof fetch, lookupImpl: publicLookup });
+  const sources = createDiscoverySources({ now, composioApiKey: null, fetchImpl: fetchImpl as typeof fetch, lookupImpl: publicLookup });
   const discover = async (kind: string) => sources.find(source => source.kind === kind)!.discover(interest);
-  assert.equal((await discover("google_news"))[0]?.title, "News");
+  assert.equal((await discover("google_news"))[0]?.title, "NBA News");
   assert.equal((await discover("hacker_news"))[0]?.url, "https://hn.example/post");
   assert.equal((await discover("reddit"))[0]?.kind, "reddit");
   assert.equal((await discover("wikipedia"))[0]?.url, "https://en.wikipedia.org/wiki/Toronto_Raptors");
@@ -50,24 +51,27 @@ test("C++ finds sources with only a topic name and preserves literal plus signs"
     if (url.hostname === "en.wikipedia.org") return new Response(JSON.stringify({ query: { search: [{ title: "C++" }] } }));
     throw new Error(`Unexpected source: ${url}`);
   };
-  const sources = createDiscoverySources({ fetchImpl: fetchImpl as typeof fetch, lookupImpl: publicLookup });
+  const sources = createDiscoverySources({ now, composioApiKey: null, fetchImpl: fetchImpl as typeof fetch, lookupImpl: publicLookup });
   for (const source of sources.filter(source => source.kind !== "rss")) {
     assert.ok((await source.discover(topic)).length > 0, `${source.kind} discovers without custom feeds`);
   }
   assert.equal(requests.length, 4);
   for (const url of requests) {
     const query = url.searchParams.get("q") ?? url.searchParams.get("query") ?? url.searchParams.get("srsearch");
-    assert.equal(query, "C++");
+    const expected = url.hostname === "en.wikipedia.org" ? 'intitle:"C++"'
+      : url.hostname === "news.google.com" ? '("C++") when:30d'
+      : url.hostname === "www.reddit.com" ? '"C++"' : "C++";
+    assert.equal(query, expected);
     assert.match(url.search, /C%2B%2B/);
   }
 });
 
 test("Reddit JSON fallback extracts public posts", async () => {
   const fetchImpl = async (input: RequestInfo | URL) => {
-    if (String(input).endsWith("search.rss?q=NBA%20OR%20Toronto%20Raptors&sort=new")) return new Response("not rss");
+    if (String(input).includes("/search.rss?")) return new Response("not rss");
     return new Response(JSON.stringify({ data: { children: [{ data: { title: "Post", selftext: "Fan reaction", permalink: "/r/nba/comments/1/post/", created_utc: 1780315200 } }] } }));
   };
-  const source = createDiscoverySources({ fetchImpl: fetchImpl as typeof fetch, lookupImpl: publicLookup }).find(value => value.kind === "reddit")!;
+  const source = createDiscoverySources({ now, composioApiKey: null, fetchImpl: fetchImpl as typeof fetch, lookupImpl: publicLookup }).find(value => value.kind === "reddit")!;
   assert.equal((await source.discover(interest))[0]?.url, "https://www.reddit.com/r/nba/comments/1/post/");
 });
 

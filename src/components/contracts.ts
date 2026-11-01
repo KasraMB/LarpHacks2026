@@ -23,7 +23,11 @@ export type IdentityEditorProps = {
 };
 
 export type InterestManagerProps = {
+  identityConfigured: boolean | null;
   state: AsyncData<Interest[]>;
+  currentUserId: string | null;
+  people: AsyncData<Person[]>;
+  onSelect: (interestId: string, personId: string) => Promise<void>;
   onCreate: (input: Input<"createInterest">) => Promise<Output<"createInterest">>;
   onUpdate: (input: Input<"updateInterest">) => Promise<Output<"updateInterest">>;
   onDelete: (input: Input<"deleteInterest">) => Promise<Output<"deleteInterest">>;

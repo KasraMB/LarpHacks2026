@@ -2,15 +2,15 @@
 
 Suggested two-person split: **A (Carson) owns the interface**, **B owns data, research, and AI**. Swap the labels to fit your strengths. Work together on setup, shared types, integration, and the demo.
 
-**Backend status (2026-11-01):** Checked backend items indicate implemented code and available mocked checks, not live Render verification. Postgres integration and seed tests are gated by `DATABASE_URL_TEST` and remain unrun here. Featherless adapter, build/start commands, and migrations are implemented; selecting the live model, setting Render secrets, deployment, and end-to-end validation remain pending. Carson items retain their existing status.
+**Backend status (2026-11-01):** Checked backend items indicate implemented code and available checks, not live Render verification. Seven integration checks passed against real disposable PostgreSQL, including account isolation, legacy migration, and maintenance seed behavior; reruns require `DATABASE_URL_TEST`. Email/password auth, origin/session gating, persistent auth limits, verification/reset tests, Featherless adapter, build/start commands, and migrations are implemented. Production deployment, live provider/model output, live email delivery, and end-to-end validation remain pending. Carson items retain their existing status.
 
-This checklist translates `alias.md` into build tasks. Start with one shared cover identity for the demo; accounts and multiple users are outside the current plan.
+This checklist translates `alias.md` into build tasks. Current scope is email/password accounts with exactly one private persona per account. Public/private skills have creator-only edits; public research is shared while people, conversations, claims, and decks remain private.
 
 ## 1. Shared foundation — together, first
 
 - [x] Create the Next.js App Router project with TypeScript and Tailwind.
 - [x] Install and configure Drizzle, Zod, the OpenAI client, and research dependencies.
-- [x] Add `.env.example` with `DATABASE_URL`, `FEATHERLESS_API_KEY`, and `CRON_SECRET`; keep real secrets out of Git.
+- [x] Add `.env.example` with database, provider, cron, auth secret/origin, and optional paired Resend settings; keep real secrets out of Git. Auth requires a secret of at least 32 characters and an explicit HTTPS production origin.
 - [ ] Agree on shared Zod schemas and API request/response shapes for identities, interests, people, claims, research, decks, and cards. **[Carson]**
 - [ ] Agree on how a person's interests are linked and how their last-conversation timestamp is recorded. **[Carson]**
 - [x] Create sample API responses so A can build screens while B builds the services.
@@ -22,6 +22,9 @@ Done when both people can run the app and use the same sample data shapes.
 
 - [x] Configure Postgres and Drizzle migrations.
 - [x] Store the cover identity and its background details.
+- [x] Enforce one persona per account, immutable request scope, and private resource isolation.
+- [x] Add account/session/verification/rate-limit persistence and creator-only edits for public/private skills.
+- [x] Preserve legacy singleton data as unowned and inaccessible; never adopt it on signup.
 - [x] Create `people`, including last-conversation timestamps.
 - [x] Create `interests` and links between people and relevant interests.
 - [x] Create timestamped `claims`, linked to people and optionally interests.
@@ -29,7 +32,7 @@ Done when both people can run the app and use the same sample data shapes.
 - [x] Store extracted research facts with topic, source URL, publication date, and collection date.
 - [x] Store decks and `cards`, linked to a person, with card type, topic, content, and supporting sources or claims.
 - [x] Add queries for a person's claims and research since their last conversation.
-- [x] Add a repeatable seed command.
+- [x] Add a repeatable unowned maintenance seed, separate from the signed-in workspace.
 
 The original table list needs additional storage for the identity, research facts, and deck grouping; agree on that schema before implementing dependent features.
 
@@ -48,6 +51,7 @@ The original table list needs additional storage for the identity, research fact
 
 - [x] Implement validated create/read/update operations for the identity.
 - [x] Implement validated create/read/update/delete operations for interests and people.
+- [x] Implement email/password authentication, database session revocation, origin checks, and persistent auth limits; optional paired email configuration enables required verification and password reset.
 - [x] Persist person-interest links and last-conversation timestamps.
 
 Done when a user can create a cover, add a topic and a person, and reload without losing them.
@@ -81,6 +85,8 @@ Done when logging a deliberately conflicting claim shows the earlier claim it co
 - [x] Deduplicate articles and avoid storing the same facts on repeated runs.
 - [x] Extract structured facts with Featherless and validate them with Zod.
 - [x] Preserve source URLs and dates; distinguish reported facts from fan reactions.
+- [x] Filter new known-date news to 30 days, preserve literal C++ topic matching, and require title/path relevance. Keep Wikipedia as background and unknown dates eligible; leave historical runs unchanged.
+- [x] Report opaque Google News redirects as explicit source errors.
 - [x] Store facts and update research-run status.
 - [x] Make individual source failures recoverable and bound fetch/model work per run.
 - [x] Expose an on-demand research operation and protect the cron endpoint with `CRON_SECRET`.
@@ -122,17 +128,18 @@ Depends on section 7's API contract; build the card views against sample decks f
 
 ## 9. Deployment — B, with A (Carson) checking the deployed UI
 
-- [x] Add a `render.yaml` Blueprint for the web service, Postgres, and a daily cron job.
-- [x] Configure secrets, production build/start commands, and database migrations.
-- [x] Configure the cron job to call `/api/cron/research` with the shared secret.
-- [x] Deploy from GitHub and verify database persistence.
-- [x] Verify both scheduled and on-demand research in the deployed environment.
+- [x] Add a Free `render.yaml` Blueprint for the web service and Postgres, with a worker in the web process group.
+- [x] Provide production build/start commands, database migrations, generated auth secret, and configurable origin/provider secrets.
+- [ ] Configure the deployed HTTPS auth origin, provider/model secrets, and optional paired Resend settings; verify account email if enabled.
+- [ ] Add daily cron when event credits are confirmed; the current Blueprint has none.
+- [ ] Deploy from GitHub and verify production database persistence.
+- [ ] Verify on-demand research and provider output in the deployed environment; verify scheduled research if added.
 
 ## 10. Integration and demo — together
 
-- [x] Seed a demo cover identity, Dana, interests, past claims, and a week of dated research.
-- [x] Include a known contradiction and a Don't say card.
-- [x] Keep cached research and a saved deck available if live services fail.
+- [x] Supply fictional Alex/Dana/interests/claims/research in explicit memory/mock UI modes; the database seed is an unowned maintenance fixture, not a sign-in demo.
+- [x] Include a known contradiction and a Don't say card in fixtures.
+- [x] Keep fictional research and a saved deck in explicit fixtures; real API failures never switch to them automatically.
 - [ ] Test the complete path: setup → research → claim → deck → prep/live → new claim. **[Carson]**
 - [x] Check that a research update does not move the last-conversation timestamp.
 - [x] Check that research dates and person-specific claims select the right deck content.

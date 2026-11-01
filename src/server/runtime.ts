@@ -14,7 +14,7 @@ export function createRuntime() {
   const base = { repository, ids: { next: randomUUID }, clock: { now: () => new Date().toISOString() } };
   const deps: ServerDependencies = { ...base, ai: createFeatherlessProvider(), reader: createArticleReader(), discovery: createDiscoverySources(),
     queue: { enqueue: repository.jobs.enqueue }, scheduler: createResearchScheduler(base) };
-  return { deps, service: createService(base, { model: process.env.FEATHERLESS_MODEL ?? "unconfigured", promptVersion: FEATHERLESS_PROMPT_VERSION }),
+  return { deps, repository, service: createService(base, { model: process.env.FEATHERLESS_MODEL ?? "unconfigured", promptVersion: FEATHERLESS_PROMPT_VERSION }),
     workers: createWorkers(deps), close: () => repository.close() };
 }
 export type AliasRuntime = ReturnType<typeof createRuntime>;

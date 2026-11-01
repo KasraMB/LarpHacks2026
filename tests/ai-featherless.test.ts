@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createFeatherlessProvider } from "@/server/ai";
 import type { DeckContext, ReadArticle } from "@/server/ports";
@@ -6,7 +6,7 @@ import type { Claim, Interest } from "@/contracts";
 
 const env = { FEATHERLESS_API_KEY: "test-key", FEATHERLESS_MODEL: "test/model" };
 const interest: Interest = {
-  id: "interest-1", identityId: "identity-1", name: "Basketball", searchTerms: ["basketball"], feedUrls: [],
+  id: "interest-1", identityId: "identity-1", name: "Basketball", searchTerms: ["basketball"], feedUrls: [], visibility: "private",
   createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z",
 };
 const claim: Claim = {

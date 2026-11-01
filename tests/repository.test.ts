@@ -64,8 +64,8 @@ test("Postgres repository transactions, deduplication, snapshots, pagination and
     await migrate(url.toString()); await migrate(url.toString());
     const identity = await repository.identity.save({ name: "Cover", background: "Background" });
     assert.equal((await repository.identity.save({ name: "Edited", background: "Updated" })).id, identity.id);
-    const topic = await repository.interests.create({ name: "Topic", searchTerms: ["topic"], feedUrls: [] });
-    const other = await repository.interests.create({ name: "Other", searchTerms: [], feedUrls: [] });
+    const topic = await repository.interests.create({ name: "Topic", searchTerms: ["topic"], feedUrls: [], visibility: "private" });
+    const other = await repository.interests.create({ name: "Other", searchTerms: [], feedUrls: [], visibility: "private" });
     const person = await repository.people.create({ name: "Person", notes: "", interestIds: [topic.id] });
     await assert.rejects(repository.interests.delete(topic.id), /Unlink/);
     await assert.rejects(repository.people.create({ name: "Bad", notes: "", interestIds: ["missing"] }), /Entity not found/);

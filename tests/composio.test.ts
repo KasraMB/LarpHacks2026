@@ -4,7 +4,7 @@ import type { Interest } from "../src/contracts";
 import { createComposioDiscoverySource, COMPOSIO_SEARCH_VERSION } from "../src/server/research/composio";
 import { createArticleReader, createDiscoverySources } from "../src/server/research";
 
-const topic: Interest = { id: "cpp", identityId: "identity", name: "C++", searchTerms: [], feedUrls: [],
+const topic: Interest = { id: "cpp", identityId: "identity", name: "C++", visibility: "private", searchTerms: [], feedUrls: [],
   createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" };
 const response = (citations: unknown[], organic_results: unknown[] = []) => Response.json({ successful: true, error: null,
   data: { results: { answer: "An AI summary is not an article or a research fact.", citations, organic_results } } });
@@ -15,16 +15,16 @@ test("Composio uses project authentication, a pinned version and a topic-only qu
     assert.equal(init?.method, "POST");
     assert.equal(init?.redirect, "error");
     assert.equal(new Headers(init?.headers).get("x-api-key"), "test-project-key");
-    assert.deepEqual(JSON.parse(String(init?.body)), { version: COMPOSIO_SEARCH_VERSION, user_id: "alias-research", arguments: { query: "C++" } });
+    assert.deepEqual(JSON.parse(String(init?.body)), { version: COMPOSIO_SEARCH_VERSION, user_id: "alias-research", arguments: { query: '("C++") when:30d' } });
     return response([
       { title: "C++ release", url: "https://example.com/release#top", published_at: "2026-10-31T12:00:00Z" },
       { title: "Duplicate", url: "https://example.com/release" },
       { title: "Unsafe", url: "http://127.0.0.1/admin" },
       { title: "Metadata", url: "http://169.254.169.254/" },
       { title: "Unsafe scheme", url: "file:///etc/passwd" },
-      { title: "Relative date", link: "https://example.com/context", date: "yesterday" },
+      { title: "C++ relative date", link: "https://example.com/context", date: "yesterday" },
       { title: "Missing URL" }, null,
-    ], [{ title: "Third source", link: "https://example.com/third", date: "not a date" }]);
+    ], [{ title: "C++ third source", link: "https://example.com/third", date: "not a date" }]);
   }});
   const articles = await source.discover(topic);
   assert.equal(articles.length, 3);

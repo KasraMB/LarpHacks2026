@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { DiscoverySource, DiscoveredArticle } from "../ports";
 import { validatePublicUrl } from "./safe-fetch";
+import { NEWS_WINDOW_DAYS, topicQuery, usableArticle } from "./quality";
 
 // Pin the documented toolkit release so a provider update cannot silently change the contract.
 export const COMPOSIO_SEARCH_VERSION = "20260903_00";
@@ -11,6 +12,7 @@ export interface ComposioDiscoveryOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
   maxBytes?: number;
+  now?: () => Date;
 }
 
 const envelopeSchema = z.object({ successful: z.boolean(), data: z.unknown(), error: z.unknown().optional() });
@@ -31,7 +33,7 @@ export function createComposioDiscoverySource(options: ComposioDiscoveryOptions 
     const signal = AbortSignal.any([AbortSignal.timeout(options.timeoutMs ?? 15_000), ...(parentSignal ? [parentSignal] : [])]);
     signal.throwIfAborted();
     // Search summaries are never research facts: only linked articles reach the reader and AI.
-    const query = [interest.name, ...interest.searchTerms].filter(Boolean).join(" OR ").slice(0, 300);
+    const query = `(${topicQuery(interest, "web")}) when:${NEWS_WINDOW_DAYS}d`;
     const response = await (options.fetchImpl ?? fetch)(endpoint, {
       method: "POST", redirect: "error", signal,
       headers: { "x-api-key": key, "content-type": "application/json", accept: "application/json" },
@@ -72,7 +74,7 @@ export function createComposioDiscoverySource(options: ComposioDiscoveryOptions 
       if (articles.length >= 25) break;
     }
     if (entries.length && !recognizedLinks) throw new Error("Composio search returned an unsupported article format.");
-    return articles;
+    return articles.filter(article => usableArticle(article, interest, (options.now ?? (() => new Date()))()));
   }};
 }
 

@@ -1,8 +1,10 @@
-import { dispatchOperation } from "@/server/http";
-import { service } from "@/server/service";
+import { serviceForUser } from "@/server/service";
+import { getSession } from "@/server/auth";
+import { createAuthenticatedOperationHandler } from "@/server/authenticated-http";
 
 export const runtime = "nodejs";
-export async function POST(request: Request, context: { params: Promise<{ operation: string }> }) {
-  const { operation } = await context.params;
-  return dispatchOperation(service, operation, request);
-}
+export const POST = createAuthenticatedOperationHandler({
+  configuredOrigin: () => process.env.BETTER_AUTH_URL,
+  getSession,
+  serviceForUser,
+});

@@ -11,13 +11,13 @@ export async function seedDemo(databaseUrl: string): Promise<void> {
   const ago = (days: number) => new Date(now.getTime() - days * 86_400_000).toISOString();
   try { await sql.begin(async tx => {
     await tx`SELECT pg_advisory_xact_lock(281924613)`;
-    const existing = await tx`SELECT id FROM identities WHERE singleton=1`;
+    const existing = await tx`SELECT id FROM identities WHERE owner_user_id IS NULL`;
     if (existing.length) {
       if (existing[0].id !== "identity_seed_demo") throw new Error("Demo seed needs an empty database; existing identity was preserved.");
       return; // Idempotent: leave the saved demo and any subsequent edits in place.
     }
     const identity: Identity = { id: "identity_seed_demo", name: "Alex (demo)", background: "Fictional demo: a basketball fan who follows Toronto.", createdAt: ago(8), updatedAt: ago(0) };
-    const interest: Interest = { id: "interest_seed_nba", identityId: identity.id, name: "NBA", searchTerms: ["NBA", "Toronto Raptors"], feedUrls: [], createdAt: ago(8), updatedAt: ago(0) };
+    const interest: Interest = { id: "interest_seed_nba", identityId: identity.id, visibility: "private", ownerUserId: null, name: "NBA", searchTerms: ["NBA", "Toronto Raptors"], feedUrls: [], createdAt: ago(8), updatedAt: ago(0) };
     const person: Person = { id: "person_seed_dana", identityId: identity.id, name: "Dana", notes: "Fictional colleague for the demo.", interestIds: [interest.id], lastConversationAt: ago(4), createdAt: ago(8), updatedAt: ago(4) };
     const first: Claim = claimSchema.parse({ id: "claim_seed_raptors", personId: person.id, conversationId: null, interestId: interest.id, text: "I have followed the Raptors for years.", saidAt: ago(7), createdAt: ago(7), checkStatus: "completed", contradictions: [], checkFailure: null });
     const second: Claim = claimSchema.parse({ ...first, id: "claim_seed_conflict", conversationId: "conversation_seed", text: "I have never followed the Raptors.", saidAt: ago(4), createdAt: ago(4), contradictions: [{ earlierClaimId: first.id, explanation: "Never following the Raptors conflicts with following them for years." }] });

@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createService } from "@/server/use-cases";
 import { createWorkers } from "@/server/workers";
@@ -12,7 +12,7 @@ import type { Job, Repository, ServerDependencies } from "@/server/ports";
 const now = "2026-11-01T12:00:00Z";
 const cutoff = "2026-10-31T12:00:00Z";
 const identity: Identity = { id: "identity-1", name: "Alex", background: "A cover", createdAt: now, updatedAt: now };
-const interestA: Interest = { id: "interest-a", identityId: identity.id, name: "Basketball", searchTerms: ["basketball"], feedUrls: [], createdAt: now, updatedAt: now };
+const interestA: Interest = { id: "interest-a", identityId: identity.id, name: "Basketball", searchTerms: ["basketball"], feedUrls: [], visibility: "private", createdAt: now, updatedAt: now };
 const interestB: Interest = { ...interestA, id: "interest-b", name: "Wine" };
 const person: Person = { id: "person-1", identityId: identity.id, name: "Dana", notes: "", interestIds: [interestB.id, interestA.id], lastConversationAt: cutoff, createdAt: now, updatedAt: now };
 const claim: Claim = { id: "claim-1", personId: person.id, conversationId: null, text: "I like basketball", interestId: interestA.id, saidAt: now, createdAt: now, checkStatus: "queued", contradictions: [], checkFailure: null };

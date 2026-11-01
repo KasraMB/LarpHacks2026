@@ -17,6 +17,7 @@
     "cron:research": "tsx scripts/cron.ts"
   },
   "dependencies": {
+    "better-auth": "^1.7.15",
     "next": "^16.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

@@ -1,6 +1,6 @@
 # Shared interfaces and working agreement
 
-Backend services, Postgres persistence, provider adapters, durable workers, and cron authorization are implemented against these contracts. Frontend forms and prep/live controllers use the typed HTTP client by default; fictional memory/mock APIs require explicit opt-in. Live provider/database verification requires Render configuration; see the README.
+Backend services, account sessions, Postgres persistence, provider adapters, durable workers, and cron authorization are implemented against these contracts. Frontend forms and prep/live controllers use the typed HTTP client by default; fictional memory/mock APIs require explicit opt-in. Seven checks passed against disposable PostgreSQL. Production deployment, live provider output, and live email delivery remain unverified; see the README.
 
 ## Ownership
 
@@ -42,11 +42,15 @@ flowchart LR
 
 ## Transport
 
-All public operations use `POST /api/v1/<operationName>` with JSON, including reads. One registry avoids maintaining a separate URL/query mapping. Use `createApiClient()` in controllers. Browser calls use the same origin; Node calls need an absolute `baseUrl`.
+All application operations use authenticated `POST /api/v1/<operationName>` with JSON, including reads. One registry avoids maintaining a separate URL/query mapping. Use `createApiClient()` in controllers. Browser calls use the same origin; Node calls need an absolute `baseUrl` and session credentials. Responses use `Cache-Control: private, no-store`.
+
+Better Auth handles email/password signup, signin, signout, and sessions at `/api/auth/*`; the client is `src/lib/auth-client.ts`. Passwords require 10–128 characters. Configure `DATABASE_URL`, a random `BETTER_AUTH_SECRET` of at least 32 characters, and `BETTER_AUTH_URL` as an explicit origin (HTTPS in production). Optional `RESEND_API_KEY` and `AUTH_EMAIL_FROM` must be supplied together; they enable required email verification and password reset. Reset revokes existing sessions. Cookies are HttpOnly and secure in production; sessions are checked in the database and auth rate limits persist there.
+
+The operation dispatcher rejects anonymous requests before constructing a service, rejects foreign browser origins, and derives its immutable user scope exclusively from the session. Missing/malformed auth configuration fails closed. Caller-supplied identifiers cannot change that scope; inaccessible private entities return `NOT_FOUND`.
 
 | Operations | Purpose |
 | --- | --- |
-| `getIdentity`, `saveIdentity` | Single cover identity |
+| `getIdentity`, `saveIdentity` | One private cover identity per account |
 | `listInterests`, `createInterest`, `updateInterest`, `deleteInterest` | Topics |
 | `listPeople`, `getPerson`, `createPerson`, `updatePerson`, `deletePerson` | People and topic links |
 | `listClaims`, `createClaim`, `getClaim` | Claims and check status |
@@ -62,11 +66,13 @@ Failure: `{ ok: false, error: { code, message, retryable } }`.
 | --- | --- |
 | `VALIDATION_ERROR` | 400 |
 | `UNAUTHORIZED` | 401 |
+| `UNAUTHORIZED` (foreign origin) | 403 |
 | `NOT_FOUND` | 404 |
 | `CONFLICT` | 409 |
 | `UPSTREAM_ERROR` | 502 |
 | `INTERNAL_ERROR` | 500 |
 | `NOT_IMPLEMENTED` | 501 |
+| `INTERNAL_ERROR` (auth unavailable/configuration failure) | 503 |
 
 The client throws `AliasApiError` for error envelopes and a validation error for malformed responses. Controllers map failures to the UI's `ApiError`. Use `ServiceError` for expected backend failures. Output schema failures return HTTP 500 without leaking details.
 
@@ -76,8 +82,9 @@ The client throws `AliasApiError` for error envelopes and a validation error for
 
 ### Identity and relationships
 
-- Begin with one cover identity, without accounts/auth flows.
-- Interests belong to the identity. People and interests have a many-to-many link.
+- Each email/password account has exactly one private cover identity, enforced even for concurrent saves. Accounts cannot adopt legacy singleton data: migrated rows with no owner remain inaccessible.
+- Skills/interests have public/private visibility and belong to their creator's identity. Public skills are readable/linkable by other accounts, but updates and deletion remain creator-only. Private skills are visible only to their owner. People and interests have a many-to-many link.
+- People, conversations, claims, decks, cards, and immutable snapshots remain account-private. Public research is shared according to its skill's visibility; workers retain a separate system scope.
 - Deck research uses the person's explicit `interestIds`. An empty selection means no topic research.
 - Missing entities return `NOT_FOUND`. Reject references to missing interests, and claims tagged with a topic not linked to that person.
 - Delete people with their conversations, claims, and decks transactionally. Deleting an interest linked to a person returns `CONFLICT`; unlink it first. Preserve evidence URLs in historical decks if topic research is deleted.
@@ -94,6 +101,8 @@ The client throws `AliasApiError` for error envelopes and a validation error for
 ### Research
 
 - Facts belong to interests, not people, and retain source URLs, dates, source kind, and fact/reaction/context labels.
+- New discovery filters known-date news to the last 30 days and requires topic relevance in title/URL path. Literal C++/C# punctuation is preserved. Wikipedia remains background context, and unknown dates remain eligible without invented publication dates. Existing historical runs/facts are unchanged.
+- Google News must resolve to a readable publisher URL; opaque redirect/consent pages produce an explicit source error rather than evidence.
 - `startResearch` returns a run ID/status. Atomically reuse a queued/running run for duplicate triggers on one interest.
 - Lifecycle: `queued → running → completed | failed`. Partial success can complete with `sourceErrors`. Overall failure uses `failure`.
 - UI polls `getResearchRun` until terminal, then refreshes facts. Controllers own polling and cancellation.
@@ -127,7 +136,7 @@ const real: AliasApi = createApiClient();
 const preview: AliasApi = mockApi;
 ```
 
-Choose explicitly in a controller. No automatic production fallback to mocks. Static reads ignore IDs/filters/pagination; all writes reject. Fixtures are fictional shape examples, not a seed or feature implementation. Placeholder pages do not fetch or wire components yet.
+Choose explicitly in a controller. No automatic production fallback to mocks. Static reads ignore IDs/filters/pagination; all writes reject. Fixtures are fictional shape examples. Explicit memory mode supplies a writable fictional UI demo; the database maintenance seed is unowned and inaccessible to signed-in accounts.
 
 ## Database handoff
 
@@ -135,8 +144,9 @@ Choose explicitly in a controller. No automatic production fallback to mocks. St
 
 | Table | Keys / relationships |
 | --- | --- |
-| identities | Single cover, background, timestamps |
-| interests | Identity FK, search terms, feed URLs |
+| auth_user / auth_session / auth_account / auth_verification / auth_rate_limit | Account credentials, sessions, verification, persistent limits |
+| identities | Unique account owner FK (nullable only for legacy/maintenance data), cover, background, timestamps |
+| interests | Creator identity FK, public/private visibility, search terms, feed URLs |
 | people | Identity FK, notes, last conversation timestamp |
 | person_interests | Unique person + interest pair |
 | conversations | Person FK, happened-at, notes |
@@ -151,8 +161,7 @@ Backend owns indexes, constraints, queue durability, and transactions. DTO times
 
 ## Remaining integration
 
-1. Carson connects pages/controllers to `createApiClient`, including pagination and job polling.
-2. Configure Render secrets and model, deploy migrations/web/worker/cron, and verify live persistence/provider behavior.
-3. Run the full UI workflow and rehearse the deployed demo. Mocked backend checks do not replace that integration check.
+1. Configure Render auth secrets/origin, provider/model, and optional email delivery; deploy migrations/web/worker and verify production persistence/provider behavior. Daily cron is not included in the Free Blueprint.
+2. Run the full signed-in UI workflow, verify live email if configured, and rehearse the deployed demo. Mocked backend checks and disposable PostgreSQL checks do not replace that integration check.
 
 AI debrief is unspecified in `alias.md`; define behavior together before adding a contract.

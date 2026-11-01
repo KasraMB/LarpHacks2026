@@ -3,6 +3,7 @@ import { claimSchema, deckSchema, researchFactSchema, type Failure } from "@/con
 import type { ServerDependencies, ResearchWorker, DeckWorker, ClaimCheckWorker } from "./ports";
 import { collectPages } from "./use-cases";
 import { FEATHERLESS_PROMPT_VERSION } from "./ai";
+import { researchErrorDetail } from "./research/errors";
 
 const failure = (message: string): Failure => ({ code: "UPSTREAM_ERROR", message, retryable: true });
 const within = () => AbortSignal.timeout(220_000);
@@ -24,7 +25,7 @@ export function createWorkers(deps: ServerDependencies): { research: ResearchWor
         const discoveries = await Promise.allSettled(deps.discovery.map(source => source.discover(interest, signal)));
         const articles = new Map<string, Awaited<ReturnType<ServerDependencies["discovery"][number]["discover"]>>[number]>();
         discoveries.forEach((result, index) => {
-          if (result.status === "rejected") errors.push({ ...failure(`Discovery source ${deps.discovery[index]!.kind} failed.`), url: null });
+          if (result.status === "rejected") errors.push({ ...failure(`${deps.discovery[index]!.kind} discovery: ${researchErrorDetail(result.reason)}`), url: null });
         });
         // Round-robin sources so a long RSS feed cannot crowd out reactions/context.
         for (let index = 0; index < 25 && articles.size < 6; index++) {
@@ -36,13 +37,15 @@ export function createWorkers(deps: ServerDependencies): { research: ResearchWor
         }
         for (const article of [...articles.values()].slice(0, 6)) {
           if (signal.aborted) break;
+          let stage = "article reading";
           try {
             const read = await deps.reader.read(article, signal);
+            stage = "fact extraction";
             const extracted = await deps.ai.extractFacts(read, interest, signal);
-            const facts = extracted.map(f => researchFactSchema.parse({ ...f, id: createHash("sha256").update(`${interest.id}\0${read.source.url}\0${f.text.trim().replace(/\s+/g, " ").toLowerCase()}`).digest("hex"), interestId: interest.id, runId, source: read.source, createdAt: deps.clock.now() }));
+            const facts = extracted.map(f => researchFactSchema.parse({ ...f, kind: article.kind === "wikipedia" ? "context" : f.kind, id: createHash("sha256").update(`${interest.id}\0${read.source.url}\0${f.text.trim().replace(/\s+/g, " ").toLowerCase()}`).digest("hex"), interestId: interest.id, runId, source: read.source, createdAt: deps.clock.now() }));
             factCount += await r.research.upsertFacts(facts);
             successfulArticles++;
-          } catch { errors.push({ ...failure("Article reading or fact extraction failed."), url: article.url }); }
+          } catch (error) { errors.push({ ...failure(`${article.kind} ${stage}: ${researchErrorDetail(error)}`), url: article.url }); }
         }
         if (signal.aborted) errors.push({ ...failure("Research time budget exhausted."), url: null });
         if (!successfulArticles && errors.length) throw new Error("No source could be processed.");

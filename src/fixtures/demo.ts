@@ -1,10 +1,10 @@
-import type { Card, Claim, Conversation, Deck, Identity, Interest, Person, ResearchFact, ResearchRun } from "@/contracts";
+﻿import type { Card, Claim, Conversation, Deck, Identity, Interest, Person, ResearchFact, ResearchRun } from "@/contracts";
 
 // Static contract examples only. These are not seeded into a DB or used by live APIs.
 const at = "2026-11-01T12:00:00.000Z";
 const before = "2026-10-25T12:00:00.000Z";
 export const identity = { id: "identity_demo", name: "Alex", background: "A basketball fan", createdAt: before, updatedAt: at } satisfies Identity;
-export const interest = { id: "interest_nba", identityId: identity.id, name: "NBA", searchTerms: ["NBA"], feedUrls: [], createdAt: before, updatedAt: at } satisfies Interest;
+export const interest = { id: "interest_nba", identityId: identity.id, name: "NBA", searchTerms: ["NBA"], feedUrls: [], visibility: "private", createdAt: before, updatedAt: at } satisfies Interest;
 export const person = { id: "person_dana", identityId: identity.id, name: "Dana", notes: "Colleague", interestIds: [interest.id], lastConversationAt: before, createdAt: before, updatedAt: at } satisfies Person;
 export const conversation = { id: "conversation_demo", personId: person.id, happenedAt: before, notes: "Basketball chat", createdAt: before } satisfies Conversation;
 export const claim = {
