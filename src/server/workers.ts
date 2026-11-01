@@ -97,9 +97,12 @@ export function createWorkers(deps: ServerDependencies): { research: ResearchWor
         }
         await save(completed);
       } catch (error) {
+        const noEvidence = !snapshot.context.claims.length && !snapshot.context.facts.length;
         await save(attempt?.willRetry
           ? { ...deck, status: "queued", cards: [], finishedAt: null, failure: null }
-          : { ...deck, status: "failed", cards: [], finishedAt: deps.clock.now(), failure: { ...failure("Deck generation failed. Check evidence and provider configuration before retrying."), code: !snapshot.context.claims.length && !snapshot.context.facts.length ? "NO_EVIDENCE" : "UPSTREAM_ERROR" } });
+          : { ...deck, status: "failed", cards: [], finishedAt: deps.clock.now(), failure: noEvidence
+            ? { code: "NO_EVIDENCE", message: "There are no saved claims or eligible research facts for this person. Add a past claim, or assign a skill and run its research, then build a new deck.", retryable: false }
+            : failure("Deck generation failed. Check evidence and provider configuration before retrying.") });
         throw error;
       }
     } },

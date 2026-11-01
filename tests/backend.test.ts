@@ -198,6 +198,8 @@ test("deck with no claim or research evidence fails with NO_EVIDENCE", async () 
   assert.equal(generated, false);
   assert.equal(saves.at(-1)?.status, "failed");
   assert.equal(saves.at(-1)?.failure?.code, "NO_EVIDENCE");
+  assert.match(saves.at(-1)?.failure?.message ?? "", /Add a past claim, or assign a skill and run its research/);
+  assert.equal(saves.at(-1)?.failure?.retryable, false);
 });
 
 test("durable retries keep claims, research and decks nonterminal until success or exhaustion", async () => {
