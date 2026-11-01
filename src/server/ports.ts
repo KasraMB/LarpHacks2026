@@ -100,9 +100,11 @@ export interface AiProvider {
 export type Job = { kind: "research"; runId: string } | { kind: "deck"; deckId: string } | { kind: "claim_check"; claimId: string };
 export interface QueuedJob { id: string; job: Job; attempts: number }
 export interface JobQueue { enqueue(job: Job): Promise<void> }
-export interface ResearchWorker { execute(runId: string): Promise<void> }
-export interface DeckWorker { execute(deckId: string): Promise<void> }
-export interface ClaimCheckWorker { execute(claimId: string): Promise<void> }
+/** Direct execution is a final attempt unless the durable queue schedules a retry. */
+export interface WorkerAttempt { willRetry: boolean }
+export interface ResearchWorker { execute(runId: string, attempt?: WorkerAttempt): Promise<void> }
+export interface DeckWorker { execute(deckId: string, attempt?: WorkerAttempt): Promise<void> }
+export interface ClaimCheckWorker { execute(claimId: string, attempt?: WorkerAttempt): Promise<void> }
 export interface ResearchScheduler { enqueueDaily(): Promise<{ runIds: string[] }> }
 export interface ServerDependencies {
   repository: Repository; ai: AiProvider; discovery: DiscoverySource[];

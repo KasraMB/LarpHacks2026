@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createService } from "@/server/use-cases";
 import { createWorkers } from "@/server/workers";
+import { processNextJob } from "@/server/queue";
+import type { AliasRuntime } from "@/server/runtime";
+import { claimSchema, deckSchema, researchRunSchema } from "@/contracts";
 import { FEATHERLESS_PROMPT_VERSION } from "@/server/ai";
 import type { Claim, Deck, Identity, Interest, Person, ResearchFact, ResearchRun } from "@/contracts";
-import type { Repository, ServerDependencies } from "@/server/ports";
+import type { Job, Repository, ServerDependencies } from "@/server/ports";
 
 const now = "2026-11-01T12:00:00Z";
 const cutoff = "2026-10-31T12:00:00Z";
@@ -195,4 +198,64 @@ test("deck with no claim or research evidence fails with NO_EVIDENCE", async () 
   assert.equal(generated, false);
   assert.equal(saves.at(-1)?.status, "failed");
   assert.equal(saves.at(-1)?.failure?.code, "NO_EVIDENCE");
+});
+
+test("durable retries keep claims, research and decks nonterminal until success or exhaustion", async () => {
+  for (const kind of ["research", "deck", "claim_check"] as const) {
+    let savedRun = run;
+    let savedDeck = deck;
+    let savedClaim = claim;
+    let attempts = 0;
+    let acknowledged = 0;
+    let failed = 0;
+    let providerFails = true;
+    const job: Job = kind === "research" ? { kind, runId: run.id } : kind === "deck" ? { kind, deckId: deck.id } : { kind, claimId: claim.id };
+    const snapshot = { context: { identity, person, interests: [interestA], claims: [claim], facts: [fact], researchSince: cutoff }, model: process.env.FEATHERLESS_MODEL ?? "test/model", promptVersion: FEATHERLESS_PROMPT_VERSION };
+    const failIfNeeded = () => { if (providerFails) throw new Error("temporary provider failure"); };
+    const deps = dependencies({
+      interests: { get: async () => interestA },
+      claims: {
+        get: async () => savedClaim,
+        list: async () => page([{ ...claim, id: "prior", saidAt: cutoff }]),
+        saveCheck: async (_id: string, result: Pick<Claim, "checkStatus" | "contradictions" | "checkFailure">) => savedClaim = claimSchema.parse({ ...savedClaim, ...result }),
+      },
+      research: {
+        getRun: async () => savedRun,
+        saveRun: async (value: ResearchRun) => savedRun = researchRunSchema.parse(value),
+        upsertFacts: async () => 1,
+      },
+      decks: {
+        get: async () => savedDeck, getSnapshot: async () => snapshot,
+        save: async (value: { deck: Deck }) => savedDeck = deckSchema.parse(value.deck),
+      },
+      jobs: {
+        claim: async () => ({ id: "job", job, attempts: ++attempts }),
+        complete: async () => { acknowledged++; },
+        fail: async () => { failed++; },
+      },
+    }, {
+      discovery: [{ kind: "rss", discover: async () => { failIfNeeded(); return [{ url: fact.source.url, title: fact.source.title, kind: "rss", publishedAt: null }]; } }],
+      ai: {
+        extractFacts: async () => [{ text: fact.text, kind: fact.kind }],
+        checkContradictions: async () => { failIfNeeded(); return []; },
+        generateDeck: async () => { failIfNeeded(); return { cards: deckCards([{ kind: "research", factId: fact.id, sourceUrl: fact.source.url }]), warnings: [] }; },
+      },
+    });
+    const runtime = { deps, workers: createWorkers(deps) } as AliasRuntime;
+    const status = () => kind === "research" ? savedRun.status : kind === "deck" ? savedDeck.status : savedClaim.checkStatus;
+    await processNextJob(runtime, "worker");
+    assert.equal(status(), "queued", `${kind} stays observable while awaiting retry`);
+    assert.equal(failed, 1);
+    assert.equal(acknowledged, 0);
+    providerFails = false;
+    await processNextJob(runtime, "worker");
+    assert.equal(status(), "completed", `${kind} successful retry completes`);
+    assert.equal(acknowledged, 1);
+    // A third, exhausted attempt publishes the final failure.
+    providerFails = true;
+    savedRun = run; savedDeck = deck; savedClaim = claim;
+    await processNextJob(runtime, "worker");
+    assert.equal(status(), "failed", `${kind} exhaustion becomes terminal`);
+    assert.equal(failed, 2);
+  }
 });

@@ -9,7 +9,7 @@ const within = () => AbortSignal.timeout(220_000);
 export function createWorkers(deps: ServerDependencies): { research: ResearchWorker; deck: DeckWorker; claimCheck: ClaimCheckWorker } {
   const r = deps.repository;
   return {
-    research: { async execute(runId) {
+    research: { async execute(runId, attempt) {
       const run = await r.research.getRun(runId);
       if (!run || run.status === "completed") return;
       const interest = await r.interests.get(run.interestId);
@@ -48,11 +48,14 @@ export function createWorkers(deps: ServerDependencies): { research: ResearchWor
         if (!successfulArticles && errors.length) throw new Error("No source could be processed.");
         await r.research.saveRun({ ...running, status: "completed", factCount, sourceErrors: errors, finishedAt: deps.clock.now() });
       } catch (error) {
-        await r.research.saveRun({ ...running, status: "failed", factCount, sourceErrors: errors, finishedAt: deps.clock.now(), failure: failure("Research failed; retry is available.") });
+        // Pending retries retain the active uniqueness slot and keep clients polling.
+        await r.research.saveRun(attempt?.willRetry
+          ? { ...running, status: "queued", factCount, sourceErrors: errors }
+          : { ...running, status: "failed", factCount, sourceErrors: errors, finishedAt: deps.clock.now(), failure: failure("Research failed; retry is available.") });
         throw error;
       }
     } },
-    claimCheck: { async execute(claimId) {
+    claimCheck: { async execute(claimId, attempt) {
       const claim = await r.claims.get(claimId);
       if (!claim || claim.checkStatus === "completed") return;
       await r.claims.saveCheck(claimId, { checkStatus: "running", checkFailure: null, contradictions: [] });
@@ -64,11 +67,13 @@ export function createWorkers(deps: ServerDependencies): { research: ResearchWor
         if (checked.contradictions.some(c => !prior.some(p => p.id === c.earlierClaimId))) throw new Error("Unknown earlier claim.");
         await r.claims.saveCheck(claimId, checked);
       } catch (error) {
-        await r.claims.saveCheck(claimId, { checkStatus: "failed", contradictions: [], checkFailure: failure("Contradiction check failed; the claim remains saved.") });
+        await r.claims.saveCheck(claimId, attempt?.willRetry
+          ? { checkStatus: "queued", contradictions: [], checkFailure: null }
+          : { checkStatus: "failed", contradictions: [], checkFailure: failure("Contradiction check failed; the claim remains saved.") });
         throw error;
       }
     } },
-    deck: { async execute(deckId) {
+    deck: { async execute(deckId, attempt) {
       const deck = await r.decks.get(deckId);
       if (!deck || deck.status === "completed") return;
       const snapshot = await r.decks.getSnapshot(deckId);
@@ -89,7 +94,9 @@ export function createWorkers(deps: ServerDependencies): { research: ResearchWor
         }
         await save(completed);
       } catch (error) {
-        await save({ ...deck, status: "failed", cards: [], finishedAt: deps.clock.now(), failure: { ...failure("Deck generation failed. Check evidence and provider configuration before retrying."), code: !snapshot.context.claims.length && !snapshot.context.facts.length ? "NO_EVIDENCE" : "UPSTREAM_ERROR" } });
+        await save(attempt?.willRetry
+          ? { ...deck, status: "queued", cards: [], finishedAt: null, failure: null }
+          : { ...deck, status: "failed", cards: [], finishedAt: deps.clock.now(), failure: { ...failure("Deck generation failed. Check evidence and provider configuration before retrying."), code: !snapshot.context.claims.length && !snapshot.context.facts.length ? "NO_EVIDENCE" : "UPSTREAM_ERROR" } });
         throw error;
       }
     } },

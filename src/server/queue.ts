@@ -7,9 +7,10 @@ export async function processNextJob(runtime: AliasRuntime, workerId: string): P
   if (!item) return false;
   try {
     const job = item.job;
-    if (job.kind === "research") await runtime.workers.research.execute(job.runId);
-    else if (job.kind === "deck") await runtime.workers.deck.execute(job.deckId);
-    else await runtime.workers.claimCheck.execute(job.claimId);
+    const attempt = { willRetry: item.attempts < 3 };
+    if (job.kind === "research") await runtime.workers.research.execute(job.runId, attempt);
+    else if (job.kind === "deck") await runtime.workers.deck.execute(job.deckId, attempt);
+    else await runtime.workers.claimCheck.execute(job.claimId, attempt);
     await jobs.complete(item.id, workerId);
   } catch {
     // Provider exceptions can contain request bodies or credentials; persist a safe message.

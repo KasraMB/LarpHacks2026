@@ -1,6 +1,6 @@
 ﻿# Alias - LarpHacks2026
 
-Backend for [alias.md](alias.md), with shared API contracts and UI placeholders for Carson to connect. Identity, people, claims, research, contradiction checks, persisted decks, and durable background jobs are implemented. See [interfaces](docs/INTERFACES.md) and [build checklist](BUILD_CHECKLIST.md).
+App for [alias.md](alias.md), with frontend screens connected to the shared backend API. Identity, people, claims, research, contradiction checks, persisted decks, and durable background jobs are implemented. See [interfaces](docs/INTERFACES.md) and [build checklist](BUILD_CHECKLIST.md).
 
 ## Local setup
 
@@ -24,7 +24,9 @@ Run the worker in a second terminal:
 npm run worker
 ```
 
-Open http://localhost:3000. Pages remain UI placeholders; use the typed client or POST JSON to `/api/v1/<operationName>` to exercise the backend. Reads also use POST. For example, `getIdentity` takes `{}`, and `listPeople` takes `{ "limit": 25 }`. Research/deck triggers return status immediately; the worker must run to complete them. `npm run worker:once` claims and processes at most one eligible job.
+Open http://localhost:3000. The screens use the real HTTP API by default: set up an identity, create interests and people, assign a person's interests, then record claims/conversations, run research, and build a deck for prep or live mode. For frontend-only development, explicitly set `NEXT_PUBLIC_ALIAS_API=memory` (writable fictional data that resets on refresh) or `mock` (static read-only fixtures) before starting/building. Leave this variable unset on Render to use Postgres and real jobs; API errors never switch to demo data.
+
+The typed client sends POST JSON to `/api/v1/<operationName>`, including reads. For example, `getIdentity` takes `{}`, and `listPeople` takes `{ "limit": 25 }`. Research/deck triggers return status immediately; the worker must run to complete them. The UI polls while jobs are queued or running, including automatic retry delays, and displays final failures. `npm run worker:once` claims and processes at most one eligible job.
 
 The seed requires an empty database, runs transactionally, and can safely be repeated for that demo. It creates fictional Alex/Dana/NBA data, seven dated fixture facts, a contradiction, and the completed `deck_seed_dana` with all four card types. Seed facts use example.com and are explicitly fictional. Retrieve the cached deck with `getDeck` and `{ "id": "deck_seed_dana" }`; this needs Postgres but no external research or AI. Static `src/fixtures/mock-api.ts` remains an explicit read-only UI option.
 
@@ -50,7 +52,7 @@ Services preserve claims when AI checks fail, record conversations and cutoff ch
 
 ```text
 src/contracts/       Shared Zod DTOs and operation registry
-src/components/      Controlled UI placeholders and prop contracts (Carson)
+src/components/      Frontend forms, controllers, prep/live modes, prop contracts
 src/app/             UI pages (Carson), API handlers
 src/server/          Use cases, runtime, workers, cron, queue, adapters
 src/server/db/       Drizzle schema, SQL migrations, Postgres repository

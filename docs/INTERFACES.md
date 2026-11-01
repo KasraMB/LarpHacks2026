@@ -1,6 +1,6 @@
 # Shared interfaces and working agreement
 
-Backend services, Postgres persistence, provider adapters, durable workers, and cron authorization are implemented against these contracts. UI pages and controlled components remain placeholders for Carson. Deployment and live provider/database verification require Render configuration; see the README.
+Backend services, Postgres persistence, provider adapters, durable workers, and cron authorization are implemented against these contracts. Frontend forms and prep/live controllers use the typed HTTP client by default; fictional memory/mock APIs require explicit opt-in. Live provider/database verification requires Render configuration; see the README.
 
 ## Ownership
 
@@ -147,7 +147,7 @@ Choose explicitly in a controller. No automatic production fallback to mocks. St
 | cards | Deck FK, type/order, prompt/answer, topic links, evidence |
 | jobs | Job kind/entity ID, retry/lease state |
 
-Backend owns indexes, constraints, queue durability, and transactions. DTO timestamps remain ISO strings. Queue triggers insert entities and jobs in the same transaction. Job claims use row locks, leases, up to three attempts, and bounded backoff. Expired final leases mark the entity failed; superseded research/deck retries are cancelled when newer work owns the active slot.
+Backend owns indexes, constraints, queue durability, and transactions. DTO timestamps remain ISO strings. Queue triggers insert entities and jobs in the same transaction. Job claims use row locks, leases, up to three attempts, and bounded backoff. Failed attempts with remaining retries return the entity to `queued`, with null terminal failure/finishedAt, retaining the active deduplication slot and frontend polling. Only exhausted attempts expose `failed`. Direct worker calls without a retry context are treated as final attempts. Expired final leases mark the entity failed; superseded research/deck retries are cancelled when newer work owns the active slot.
 
 ## Remaining integration
 
