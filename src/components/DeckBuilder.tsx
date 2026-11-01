@@ -133,7 +133,7 @@ export function DeckBuilder({ personId, state, onBuild }: DeckBuilderProps) {
               onClick={() => build(true)}
               className="w-full border-night-line! bg-night-raised! text-night-ink! hover:bg-night-line! active:bg-night-line!"
             >
-              {deck.status === "failed" ? "Try building again" : "Rebuild deck"}
+              {deck.status !== "failed" ? "Rebuild deck" : deck.failure?.retryable === false ? "Build a new deck" : "Try building again"}
             </Button>
           ) : (
             <Button
