@@ -8,6 +8,8 @@ class FakeRecognition implements Recognition {
   interimResults = false;
   lang = "";
   onstart: Recognition["onstart"] = null;
+  onaudiostart: Recognition["onaudiostart"] = null;
+  onspeechstart: Recognition["onspeechstart"] = null;
   onend: Recognition["onend"] = null;
   onerror: Recognition["onerror"] = null;
   onresult: Recognition["onresult"] = null;
@@ -97,4 +99,35 @@ test("repeated empty recognition ends stop automatically instead of retrying for
   assert.equal(recognition.starts, 4);
   assert.match(errors[0], /No speech was detected/);
   capture.dispose();
+});
+
+test("silent recognition reports whether capture or transcription failed", context => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  for (const stage of ["none", "audio", "speech"]) {
+    const { capture, recognition, errors, statuses } = setup();
+    capture.start();
+    if (stage !== "none") recognition.onaudiostart?.();
+    if (stage === "speech") recognition.onspeechstart?.();
+    // Blank events must not hide a stalled service.
+    recognition.result([" "]);
+    context.mock.timers.tick(20_000);
+    assert.equal(statuses.at(-1), "stopped");
+    assert.equal(recognition.aborts, 1);
+    assert.match(errors[0], stage === "none" ? /did not start microphone/ : stage === "audio" ? /no words were recognized/ : /returned no transcript/);
+    capture.dispose();
+  }
+});
+
+test("words and cleanup cancel the silent-recognition deadline", context => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  for (const action of ["words", "stop", "dispose"]) {
+    const { capture, recognition, errors } = setup();
+    capture.start();
+    if (action === "words") recognition.result(["hello"]);
+    else if (action === "stop") capture.stop();
+    else capture.dispose();
+    context.mock.timers.tick(25_000);
+    assert.deepEqual(errors, []);
+    capture.dispose();
+  }
 });

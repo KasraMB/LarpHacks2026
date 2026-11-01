@@ -5,6 +5,7 @@ import type { Card, Deck } from "@/contracts";
 import { createLiveSession, type LiveEvent } from "@/lib/live-session";
 import { createSpeechCapture, type CaptureStatus, type RecognitionConstructor } from "@/lib/speech-capture";
 import { matchLiveCards } from "@/lib/live-matching";
+import { checkMicrophone } from "@/lib/microphone-check";
 import { CardTypeLabel, EvidenceList } from "./Flashcard";
 import { Button } from "./ui";
 
@@ -19,6 +20,8 @@ export function LiveAssistant({ deck }: { deck: Deck }) {
   const [language, setLanguage] = useState("en-US");
   const [error, setError] = useState<string | null>(null);
   const [captureError, setCaptureError] = useState<string | null>(null);
+  const [microphoneCheck, setMicrophoneCheck] = useState<string | null>(null);
+  const microphoneTest = useRef<ReturnType<typeof checkMicrophone> | null>(null);
   const [matches, setMatches] = useState<Card[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useState({ revision: -1, text: "", phrase: "", pending: false, complete: false });
@@ -37,6 +40,7 @@ export function LiveAssistant({ deck }: { deck: Deck }) {
     return () => {
       alive.current = false;
       capture.current?.dispose();
+      microphoneTest.current?.stop();
       session.current?.stop();
     };
   }, []);
@@ -92,6 +96,9 @@ export function LiveAssistant({ deck }: { deck: Deck }) {
   }
 
   function stop() {
+    microphoneTest.current?.stop();
+    microphoneTest.current = null;
+    setMicrophoneCheck(null);
     capture.current?.dispose();
     capture.current = null;
     session.current?.stop();
@@ -104,6 +111,7 @@ export function LiveAssistant({ deck }: { deck: Deck }) {
   function startListening() {
     stop();
     setCaptureError(null);
+    setMicrophoneCheck(null);
     setError(null);
     const browser = window as SpeechWindow;
     const Recognition = browser.SpeechRecognition ?? browser.webkitSpeechRecognition;
@@ -136,7 +144,16 @@ export function LiveAssistant({ deck }: { deck: Deck }) {
     </div>
     <div className="flex flex-wrap items-end gap-3">
       <Button variant="secondary" className="min-h-11" disabled={supported !== true || listening} onClick={startListening}>Start listening</Button>
-      <Button variant="secondary" className="min-h-11" disabled={!listening && !running} onClick={stop}>Stop</Button>
+      <Button variant="secondary" className="min-h-11" disabled={!listening && !running && !microphoneCheck} onClick={stop}>Stop</Button>
+      <Button variant="secondary" className="min-h-11" onClick={() => {
+        stop();
+        if (!navigator.mediaDevices?.getUserMedia || !window.AudioContext) {
+          setMicrophoneCheck("Microphone checks require HTTPS and browser microphone access.");
+          return;
+        }
+        microphoneTest.current = checkMicrophone({ mediaDevices: navigator.mediaDevices, AudioContext: window.AudioContext,
+          onStatus: message => { if (alive.current) setMicrophoneCheck(message); } });
+      }}>Check microphone</Button>
       <label className="space-y-1 text-sm">
         <span className="block text-slate-300">Speech language</span>
         <select className="min-h-11 rounded-md bg-white px-3 py-2 text-slate-950" value={language} disabled={listening} onChange={event => setLanguage(event.target.value)}>
@@ -145,6 +162,7 @@ export function LiveAssistant({ deck }: { deck: Deck }) {
       </label>
       <p role="status" className="py-2 text-sm text-slate-300">{captureStatus === "starting" ? "Starting microphone…" : captureStatus === "listening" ? "Listening · partial speech updates are on" : running ? "Following typed text · microphone off" : "Microphone off"}</p>
     </div>
+    {microphoneCheck ? <p role="status" className="max-w-prose break-words text-sm text-slate-200">{microphoneCheck}</p> : null}
     <div className="space-y-2">
       <label htmlFor="live-transcript" className="block text-sm font-medium">Live transcript</label>
       <textarea ref={transcriptField} id="live-transcript" rows={2} maxLength={1_600} readOnly={listening} value={transcript} onChange={event => updateText(event.target.value, running)} className="w-full resize-y rounded-md border border-slate-500 bg-slate-900 px-3 py-2 text-base text-white placeholder:text-slate-400" placeholder={listening ? "Listening… words appear here as you speak." : "Type what you hear, or start listening."} aria-describedby="transcript-hint" />

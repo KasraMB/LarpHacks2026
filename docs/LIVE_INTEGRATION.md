@@ -4,6 +4,8 @@ Live mode includes explicit microphone controls, interim speech recognition, imm
 
 Microphone recognition requires a supporting browser and a secure context (HTTPS or localhost). It uses the browser's speech service, which may process audio remotely. It hears nearby audio rather than automatically capturing a call's remote audio. Alias does not save transcripts or suggestions. Speech-service/provider latency means a suggestion before the speaker finishes is a goal, not a guarantee.
 
+If Chrome shows Listening but no words appear, choose **Check microphone** and speak for five seconds. This stops recognition and measures the default microphone locally without recording or uploading audio. The result names the input and distinguishes detected audio from silence; detected audio does not prove speech recognition works. If no words arrive within 20 seconds of starting recognition, capture stops with a specific message instead of listening indefinitely. Hardware and browser-service availability still require verification on the affected device.
+
 `src/lib/speech-capture.ts` handles interim revisions, bounded transcript retention, recognition restarts, permission errors, and cleanup. `src/lib/live-session.ts` validates NDJSON, runs at most one generation at a time, refreshes from the latest phrase, respects rate limits, and aborts on Stop/unmount or a 25-second client deadline. The built-in UI matches the saved deck locally on every text update and sets `retrieve: false` to avoid redundant retrieval requests; other clients can retain retrieval-only requests. Stop, deck navigation, and unmount end capture and requests. Interrupted output is labeled incomplete. Text is rendered as text, never HTML.
 
 ## Request

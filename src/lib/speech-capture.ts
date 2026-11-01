@@ -4,6 +4,8 @@ export interface Recognition {
   interimResults: boolean;
   lang: string;
   onstart: (() => void) | null;
+  onaudiostart?: (() => void) | null;
+  onspeechstart?: (() => void) | null;
   onend: (() => void) | null;
   onerror: ((event: { error: string }) => void) | null;
   onresult: ((event: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
@@ -31,11 +33,15 @@ export function createSpeechCapture(options: {
   let committed = options.initialTranscript?.slice(-1_600) ?? "";
   let results = new Map<number, string>();
   let restart: ReturnType<typeof setTimeout> | undefined;
+  let watchdog: ReturnType<typeof setTimeout> | undefined;
+  let audioStarted = false;
+  let speechStarted = false;
   let emptyRestarts = 0;
   const text = () => [committed, ...results.values()].filter(Boolean).join(" ").trim().slice(-1_600);
   const halt = () => {
     active = false;
     clearTimeout(restart);
+    clearTimeout(watchdog);
     try { recognition.abort(); } catch { /* Recognition may already be stopped. */ }
     options.onStatus("stopped");
   };
@@ -47,13 +53,19 @@ export function createSpeechCapture(options: {
     catch { fail("Listening could not start. Check microphone access and try again, or type below."); }
   };
   recognition.onstart = () => { if (active && !disposed) options.onStatus("listening"); };
+  recognition.onaudiostart = () => { if (active && !disposed) audioStarted = true; };
+  recognition.onspeechstart = () => { if (active && !disposed) speechStarted = true; };
   recognition.onresult = (event) => {
     if (!active || disposed) return;
-    emptyRestarts = 0;
+    let receivedWords = false;
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const value = event.results[i]?.[0]?.transcript;
-      if (typeof value === "string") results.set(i, value.slice(-1_600));
+      if (typeof value === "string") {
+        results.set(i, value.slice(-1_600));
+        if (value.trim()) receivedWords = true;
+      }
     }
+    if (receivedWords) { emptyRestarts = 0; clearTimeout(watchdog); }
     // Keep recent segments only, even in a recognition session lasting hours.
     while (results.size > 1 && [...results.values()].join(" ").length > 1_600) results.delete(results.keys().next().value!);
     options.onTranscript(text());
@@ -78,12 +90,30 @@ export function createSpeechCapture(options: {
     restart = setTimeout(begin, 300);
   };
   return {
-    start() { if (!disposed && !active) { active = true; begin(); } },
+    start() {
+      if (!disposed && !active) {
+        active = true;
+        audioStarted = speechStarted = false;
+        // Some browsers expose recognition and emit start, then never return
+        // either words or an error. Bound that silent failure across restarts.
+        watchdog = setTimeout(() => {
+          if (!active || disposed) return;
+          fail(speechStarted
+            ? "Speech was detected, but the browser returned no transcript. Its speech service may be unavailable. Try another browser, or type below."
+            : audioStarted
+              ? "The microphone opened, but no words were recognized. Check the selected input and speech language, then try again, or type below."
+              : "The browser did not start microphone capture. Check site and system microphone permissions, then try again, or type below.");
+        }, 20_000);
+        begin();
+      }
+    },
     stop: halt,
     dispose() {
       disposed = true;
       active = false;
       clearTimeout(restart);
+      clearTimeout(watchdog);
+      recognition.onaudiostart = recognition.onspeechstart = null;
       recognition.onstart = recognition.onresult = recognition.onerror = recognition.onend = null;
       try { recognition.abort(); } catch { /* No active browser session. */ }
     },
