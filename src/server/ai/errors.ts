@@ -3,6 +3,10 @@ import { ZodError } from "zod";
 import type { Failure } from "@/contracts";
 
 const knownFailures = {
+  AI_INVALID_JSON: { message: "The model returned unreadable JSON after an automatic correction attempt. Rebuild the deck or select another model.", retryable: true },
+  AI_INVALID_DECK: { message: "The model did not follow the four-card format after an automatic correction attempt. Rebuild the deck or select another model.", retryable: true },
+  AI_MISSING_CARD_TYPE: { message: "The model repeated or omitted a required card type after an automatic correction attempt. Rebuild the deck or select another model.", retryable: true },
+  AI_UNKNOWN_EVIDENCE: { message: "The model cited evidence outside this deck after an automatic correction attempt. The unsupported cards were rejected. Rebuild the deck or select another model.", retryable: true },
   AI_MISSING_KEY: { message: "FEATHERLESS_API_KEY is missing on the server. Configure it on the Render web service, redeploy, then rebuild the deck.", retryable: false },
   AI_MISSING_MODEL: { message: "FEATHERLESS_MODEL is missing on the server. Set an available model's exact ID, redeploy, then rebuild the deck.", retryable: false },
   AI_INPUT_TOO_LARGE: { message: "This deck has more evidence than the generation input limit allows. Reduce the person's assigned skills or history before rebuilding.", retryable: false },
